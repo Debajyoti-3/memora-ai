@@ -24,7 +24,9 @@ app.get("/", (req, res) => {
 });
 
 import userRoute from './routes/user.route.js'
+import messageRoute from './routes/message.route.js'
 
 app.use('/api/v1/auth', userRoute)
+app.use('/api/v1/message', messageRoute)
 
 export default app;
