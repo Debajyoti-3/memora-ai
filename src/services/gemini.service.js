@@ -85,4 +85,4 @@ const generateAIResponse = async ({
   }
 };
 
-export generateAIResponse
+export {generateAIResponse}
