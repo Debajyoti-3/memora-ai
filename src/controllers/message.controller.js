@@ -2,6 +2,8 @@ import { Conversation } from "../models/conversation.model.js";
 import { buildConversationContext } from "../services/contextBuilder.service.js";
 import { Message } from "../models/message.model.js";
 import { generateAIResponse } from "../services/gemini.service.js";
+import { Memory } from "../models/memory.model.js";
+import { extractMemory } from "../services/memoryExtraction.service.js";
 
 const createCoversation = async (req, res) => {
   try {
@@ -118,6 +120,22 @@ Guidelines:
     conversation.lastMessageAt = new Date();
 
     await conversation.save();
+
+    const memoryResult = await extractMemory({
+      messages: context,
+    });
+
+    if (memoryResult.success && memoryResult.memory.shouldRemember) {
+      await Memory.create({
+        userId: req.user.id,
+
+        content: memoryResult.memory.memory,
+
+        category: memoryResult.memory.category,
+
+        importance: memoryResult.memory.importance,
+      });
+    }
 
     return res.status(200).json({
       success: true,
