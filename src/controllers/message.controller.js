@@ -85,7 +85,7 @@ const sendMessage = async (req, res) => {
     // build context for AI response
     const context = await buildConversationContext({
       conversationId,
-
+      userId: req.user.id,
       systemPrompt: `
 You are a helpful AI assistant.
 

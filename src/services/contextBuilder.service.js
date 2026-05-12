@@ -1,7 +1,7 @@
-import { Message } from '../models/message.model.js';
+import { Message } from "../models/message.model.js";
+import { retrieveRelevantMemories } from "../services/memoryRetrieval.service.js";
 
 const MAX_CONTEXT_MESSAGES = 10;
-
 
 const DEFAULT_SYSTEM_PROMPT = `
 You are a helpful AI assistant.
@@ -9,11 +9,10 @@ You are a helpful AI assistant.
 Guidelines:
 - Be conversational and concise.
 - Use previous conversation context when relevant.
-- Give direct and accurate responses.
+- Use stored user memories when useful.
+- Give personalized responses.
 - Avoid repeating yourself.
 `;
-
-// fetch recent conversation messages
 
 const fetchRecentMessages = async ({
   conversationId,
@@ -26,12 +25,8 @@ const fetchRecentMessages = async ({
     .limit(limit)
     .lean();
 
-
   return messages.reverse();
 };
-
-// normalize DB messages
-// into internal AI message format
 
 const normalizeMessages = (messages) => {
   return messages.map((msg) => ({
@@ -40,30 +35,55 @@ const normalizeMessages = (messages) => {
   }));
 };
 
-// build final context
+const formatMemoriesForPrompt = (memories) => {
+  if (!memories.length) return "";
+
+  const memoryLines = memories.map((memory) => `- ${memory.content}`);
+
+  return `
+Relevant User Memories:
+${memoryLines.join("\n")}
+`;
+};
 
 const buildConversationContext = async ({
   conversationId,
+  userId,
+  currentMessage,
   systemPrompt = DEFAULT_SYSTEM_PROMPT,
 }) => {
-  
+  // 1. Fetch recent conversation messages
 
-  const recentMessages =
-    await fetchRecentMessages({
-      conversationId,
-    });
+  const recentMessages = await fetchRecentMessages({
+    conversationId,
+  });
 
+  const formattedMessages = normalizeMessages(recentMessages);
 
+  // 2. Retrieve relevant memories
 
-  const formattedMessages =
-    normalizeMessages(recentMessages);
+  const relevantMemories = await retrieveRelevantMemories({
+    userId,
+    message: currentMessage,
+    limit: 5,
+  });
 
-  
+  const memoryContext = formatMemoriesForPrompt(relevantMemories);
+
+  // 4. Inject memory into system prompt
+
+  const enhancedSystemPrompt = `
+${systemPrompt}
+
+${memoryContext}
+`;
+
+  // 5. Final context
 
   const context = [
     {
       role: "system",
-      content: systemPrompt,
+      content: enhancedSystemPrompt,
     },
 
     ...formattedMessages,
