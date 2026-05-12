@@ -1,4 +1,7 @@
 import { Conversation } from "../models/conversation.model.js";
+import { buildConversationContext } from "../services/contextBuilder.service.js";
+import { Message } from "../models/message.model.js";
+import { generateAIResponse } from "../services/gemini.service.js";
 
 const createCoversation = async (req, res) => {
   try {
@@ -77,36 +80,40 @@ const sendMessage = async (req, res) => {
       content,
     });
 
-    // fetch recent messages
-
-    const recentMessages = await Message.find({
+    // build context for AI response
+    const context = await buildConversationContext({
       conversationId,
-    })
-      .sort({ createdAt: -1 })
-      .limit(10);
 
-    // reverse for chronological order
-    recentMessages.reverse();
+      systemPrompt: `
+You are a helpful AI assistant.
 
-    // build context
-    // future LLM input
+Guidelines:
+- Be concise and accurate.
+- Use previous conversation context.
+- Be polite and conversational.
+- If unsure, say you don't know.
+`,
+    });
 
-    const context = recentMessages.map((msg) => ({
-      role: msg.role,
-      content: msg.content,
-    }));
+    const aiResult = await generateAIResponse({
+      messages: context,
+    });
 
-    // dummy AI response
-    // later replace with any Gemini/OpenAI API
-
-    const aiReply = `AI response to: "${content}"`;
+    if (!aiResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: aiResult.error,
+      });
+    }
 
     const assistantMessage = await Message.create({
       conversationId,
       userId: req.user.id,
       role: "assistant",
-      content: aiReply,
+      content: aiResult.response,
     });
+
+    // update conversation metadata
 
     conversation.lastMessageAt = new Date();
 
@@ -118,8 +125,6 @@ const sendMessage = async (req, res) => {
       userMessage,
 
       assistantMessage,
-
-      contextUsed: context,
     });
   } catch (error) {
     console.error("SEND MESSAGE ERROR:", error);
@@ -131,4 +136,47 @@ const sendMessage = async (req, res) => {
   }
 };
 
-export { createCoversation, getCoversations, sendMessage };
+const getMessages = async (req, res) => {
+  try {
+    const conversationId = req.params.id;
+
+    const conversation = await Conversation.findOne({
+      _id: conversationId,
+      userId: req.user.id,
+    });
+
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message: "Conversation not found",
+      });
+    }
+
+    const messages = await Message.find({
+      conversationId,
+    }).sort({ createdAt: 1 });
+
+    return res.status(200).json({
+      success: true,
+
+      conversation: {
+        _id: conversation._id,
+        title: conversation.title,
+        createdAt: conversation.createdAt,
+      },
+
+      totalMessages: messages.length,
+
+      messages,
+    });
+  } catch (error) {
+    console.error("GET MESSAGES ERROR:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+export { createCoversation, getCoversations, sendMessage, getMessages };
