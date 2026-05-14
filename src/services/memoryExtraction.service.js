@@ -35,7 +35,7 @@ Format:
 }
 
 Rules:
-- importance must be between 0 and 1
+- importance must be between 1 and 10
 - category should be short
 - if nothing important exists:
 {

@@ -129,7 +129,7 @@ Guidelines:
       await Memory.create({
         userId: req.user.id,
 
-        content: memoryResult.memory.memory,
+        text: memoryResult.memory.memory,
 
         category: memoryResult.memory.category,
 
