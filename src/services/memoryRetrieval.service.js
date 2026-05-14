@@ -5,7 +5,6 @@ const normalizeText = (text) => {
 };
 
 //  Extract keywords from user message
-//   Very basic version for Phase 1
 
 const extractKeywords = (text) => {
   return normalizeText(text)
@@ -15,23 +14,51 @@ const extractKeywords = (text) => {
 
 // Calculate simple keyword match score
 
-const calculateScore = (memoryText, keywords) => {
+const calculateKeywordSimilarity = (memoryText, keywords) => {
   const normalizedMemory = normalizeText(memoryText);
 
-  let score = 0;
+  let matches = 0;
 
   for (const keyword of keywords) {
     if (normalizedMemory.includes(keyword)) {
-      score += 1;
+      matches++;
     }
   }
 
-  return score;
+  return matches / keywords.length;
+};
+
+const calculateRecencyScore = (createdAt) => {
+  const daysOld = (Date.now() - new Date(createdAt)) / (1000 * 60 * 60 * 24);
+
+  // memory freshness decays over 30 days
+  return Math.max(0, 1 - daysOld / 30);
+};
+
+// final memory relevance score combining multiple factors
+const calculateMemoryScore = ({
+  similarityScore,
+  importance,
+  createdAt,
+  accessCount = 0,
+}) => {
+  const normalizedImportance = importance / 10;
+
+  const recencyScore = calculateRecencyScore(createdAt);
+
+  const accessScore = Math.min(accessCount / 20, 1);
+
+  return (
+    similarityScore * 0.6 +
+    normalizedImportance * 0.25 +
+    recencyScore * 0.1 +
+    accessScore * 0.05
+  );
 };
 
 //   Retrieve relevant memories
 
-const retrieveRelevantMemories = async ({ userId, message, limit = 5 }) => {
+const retrieveRelevantMemories = async ({ userId, message, limit = 10 }) => {
   try {
     // extract keywords from current user message
     const keywords = extractKeywords(message);
@@ -40,25 +67,40 @@ const retrieveRelevantMemories = async ({ userId, message, limit = 5 }) => {
       return [];
     }
 
-    // fetch all memories of user
-    // (Later you will optimize this)
-    const memories = await Memory.find({ userId }).lean();
+    // candiate retrieval
+    const memories = await Memory.find({
+      userId,
+      isArchived: false,
+    })
+      .sort({ importance: -1 })
+      .limit(100)
+      .lean();
 
     const scoredMemories = memories
       .map((memory) => {
-        const score = calculateScore(memory.content, keywords);
+        const similarityScore = calculateKeywordSimilarity(
+          memory.content,
+          keywords,
+        );
+
+        const finalScore = calculateMemoryScore({
+          similarityScore,
+          importance: memory.importance,
+          createdAt: memory.createdAt,
+          accessCount: memory.accessCount,
+        });
 
         return {
           ...memory,
-          score,
+          similarityScore,
+          score: finalScore,
         };
       })
-      .filter((memory) => memory.score > 0);
+      .filter((memory) => memory.similarityScore > 0);
 
     // sorting by highest score
     scoredMemories.sort((a, b) => b.score - a.score);
 
-    // returning top memories
     return scoredMemories.slice(0, limit);
   } catch (error) {
     console.error("Memory Retrieval Error:", error);
