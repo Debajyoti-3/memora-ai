@@ -1,7 +1,15 @@
 import { Memory } from "../models/memory.model.js";
 
+const STOPWORDS = [
+  "the","is","am","are","with","my","me","and",
+  "a","an","to","of","in","on","for","at",
+  "this","that","it","be","was","were"
+];
 const normalizeText = (text) => {
-  return text.toLowerCase().trim();
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s]/g, "")
+    .trim()
 };
 
 //  Extract keywords from user message
@@ -9,18 +17,20 @@ const normalizeText = (text) => {
 const extractKeywords = (text) => {
   return normalizeText(text)
     .split(/\s+/)
-    .filter((word) => word.length > 2);
+    .filter((word) => !STOPWORDS.includes(word));
 };
 
 // Calculate simple keyword match score
 
 const calculateKeywordSimilarity = (memoryText, keywords) => {
+  if(!memoryText) return 0;
   const normalizedMemory = normalizeText(memoryText);
+  const memoryWords = normalizedMemory.split(/\s+/);
 
   let matches = 0;
 
   for (const keyword of keywords) {
-    if (normalizedMemory.includes(keyword)) {
+    if (memoryWords.includes(keyword)) {
       matches++;
     }
   }
@@ -72,7 +82,7 @@ const retrieveRelevantMemories = async ({ userId, message, limit = 10 }) => {
       userId,
       isArchived: false,
     })
-      .sort({ importance: -1 })
+      .sort({ importance: -1, lastAccessedAt: -1 })
       .limit(100)
       .lean();
 
@@ -101,7 +111,24 @@ const retrieveRelevantMemories = async ({ userId, message, limit = 10 }) => {
     // sorting by highest score
     scoredMemories.sort((a, b) => b.score - a.score);
 
-    return scoredMemories.slice(0, limit);
+    const topMemories = scoredMemories.slice(0, limit);
+
+    // Memory Reinforcement
+    await Memory.updateMany(
+      {
+        _id: {
+          $in: topMemories.map((m) => m._id),
+        },
+      },
+      {
+        $inc: { accessCount: 1 },
+        $set: {
+          lastAccessedAt: new Date(),
+        },
+      },
+    );
+
+    return topMemories;
   } catch (error) {
     console.error("Memory Retrieval Error:", error);
     return [];
