@@ -4,6 +4,7 @@ import { Message } from "../models/message.model.js";
 import { generateAIResponse } from "../services/gemini.service.js";
 import { Memory } from "../models/memory.model.js";
 import { extractMemory } from "../services/memoryExtraction.service.js";
+import { generateEmbedding } from "../services/embedding.service.js";
 
 const createCoversation = async (req, res) => {
   try {
@@ -126,6 +127,12 @@ Guidelines:
     });
 
     if (memoryResult.success && memoryResult.memory.shouldRemember) {
+      try {
+        const memoryText = memoryResult.memory.memory;
+
+      // Generate embedding vector
+      const embedding = await generateEmbedding(memoryText);
+      
       await Memory.create({
         userId: req.user.id,
 
@@ -134,7 +141,14 @@ Guidelines:
         category: memoryResult.memory.category,
 
         importance: memoryResult.memory.importance,
+
+        embedding,
+
+        sourceMessageId: userMessage._id,
       });
+      } catch (error) {
+        console.error("Memory creation error:", error);
+      }
     }
 
     return res.status(200).json({

@@ -52,9 +52,9 @@ const memorySchema = new mongoose.Schema(
       index: true,
     },
 
-    embeddingId: {
-      type: String,
-      default: null,
+    embedding: {
+      type: [Number],
+      default: [],
     },
 
     sourceMessageId: {
