@@ -55,7 +55,8 @@ const getCoversations = async (req, res) => {
 
 const sendMessage = async (req, res) => {
   try {
-    const { conversationId, content } = req.body;
+    const { conversationId } = req.params;
+    const { content } = req.body;
 
     if (!conversationId || !content) {
       return res.status(400).json({
@@ -130,22 +131,22 @@ Guidelines:
       try {
         const memoryText = memoryResult.memory.memory;
 
-      // Generate embedding vector
-      const embedding = await generateEmbedding(memoryText);
-      
-      await Memory.create({
-        userId: req.user.id,
+        // Generate embedding vector
+        const embedding = await generateEmbedding(memoryText);
 
-        text: memoryResult.memory.memory,
+        await Memory.create({
+          userId: req.user.id,
 
-        category: memoryResult.memory.category,
+          text: memoryResult.memory.memory,
 
-        importance: memoryResult.memory.importance,
+          category: memoryResult.memory.category,
 
-        embedding,
+          importance: memoryResult.memory.importance,
 
-        sourceMessageId: userMessage._id,
-      });
+          embedding,
+
+          sourceMessageId: userMessage._id,
+        });
       } catch (error) {
         console.error("Memory creation error:", error);
       }
@@ -170,7 +171,7 @@ Guidelines:
 
 const getMessages = async (req, res) => {
   try {
-    const conversationId = req.params.id;
+    const { conversationId } = req.params;
 
     const conversation = await Conversation.findOne({
       _id: conversationId,

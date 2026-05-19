@@ -6,7 +6,7 @@ const router = Router()
 
 router.post('/create-conversation', authMiddleware, createCoversation)
 router.get('/get-conversations', authMiddleware, getCoversations)
-router.post('/send-message', authMiddleware, sendMessage)   
-router.post('/get-message', authMiddleware, getMessages)   
+router.post('/send-message/:conversationId', authMiddleware, sendMessage)   
+router.get('/get-message/:conversationId', authMiddleware, getMessages)   
 
 export default router
