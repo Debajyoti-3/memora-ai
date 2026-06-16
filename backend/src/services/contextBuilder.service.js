@@ -65,7 +65,6 @@ const buildConversationContext = async ({
   const relevantMemories = await retrieveRelevantMemories({
     userId,
     message: currentMessage,
-    limit: 5,
   });
 
   const memoryContext = formatMemoriesForPrompt(relevantMemories);

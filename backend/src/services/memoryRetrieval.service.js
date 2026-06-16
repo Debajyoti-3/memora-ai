@@ -1,15 +1,35 @@
 import { Memory } from "../models/memory.model.js";
 
 const STOPWORDS = [
-  "the","is","am","are","with","my","me","and",
-  "a","an","to","of","in","on","for","at",
-  "this","that","it","be","was","were"
+  "the",
+  "is",
+  "am",
+  "are",
+  "with",
+  "my",
+  "me",
+  "and",
+  "a",
+  "an",
+  "to",
+  "of",
+  "in",
+  "on",
+  "for",
+  "at",
+  "this",
+  "that",
+  "it",
+  "be",
+  "was",
+  "were",
 ];
 const normalizeText = (text) => {
+  if (!text || typeof text !== "string") return "";
   return text
     .toLowerCase()
     .replace(/[^\w\s]/g, "")
-    .trim()
+    .trim();
 };
 
 //  Extract keywords from user message
@@ -23,7 +43,7 @@ const extractKeywords = (text) => {
 // Calculate simple keyword match score
 
 const calculateKeywordSimilarity = (memoryText, keywords) => {
-  if(!memoryText) return 0;
+  if (!memoryText) return 0;
   const normalizedMemory = normalizeText(memoryText);
   const memoryWords = normalizedMemory.split(/\s+/);
 
@@ -71,6 +91,7 @@ const calculateMemoryScore = ({
 const retrieveRelevantMemories = async ({ userId, message, limit = 10 }) => {
   try {
     // extract keywords from current user message
+    if (!message || typeof message !== "string") return [];
     const keywords = extractKeywords(message);
 
     if (!keywords.length) {

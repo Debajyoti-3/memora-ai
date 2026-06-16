@@ -67,7 +67,7 @@ const generateAIResponse = async ({
     return {
       success: true,
 
-      response: response.text,
+      response: response.text(),
     };
   } catch (error) {
     console.error(
