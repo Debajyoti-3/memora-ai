@@ -17,14 +17,17 @@ const createCoversation = async (req, res) => {
       });
     }
 
-    await Conversation.create({
+    const newConversation = await Conversation.create({
       userId: fetchedUser.id,
     });
 
-    return res.json({ message: "Conversation created successfully" });
+    return res.json({
+      message: "Conversation created successfully",
+      conversation: newConversation
+    });
   } catch (error) {
     console.log("Error in Conversation Creation: ", error.message);
-    return res.json({ status: 500, message: "Error in Conversation Creation" });
+    return res.status(500).json({ message: "Error in Conversation Creation" });
   }
 };
 
@@ -43,9 +46,9 @@ const getCoversations = async (req, res) => {
       userId: fetchedUser.id,
     }).sort({ updatedAt: -1 });
 
-    return res.josn({
+    return res.json({
       fetchedConversations,
-      message: "converstions fetched successfully",
+      message: "conversations fetched successfully",
     });
   } catch (error) {
     console.log("Conversation fetch error: ", error.message);
@@ -120,6 +123,12 @@ Guidelines:
     // update conversation metadata
 
     conversation.lastMessageAt = new Date();
+
+    if (conversation.title === "New Chat" || !conversation.title) {
+      const words = content.trim().split(/\s+/);
+      const titleText = words.slice(0, 5).join(" ") + (words.length > 5 ? "..." : "");
+      conversation.title = titleText;
+    }
 
     await conversation.save();
 
