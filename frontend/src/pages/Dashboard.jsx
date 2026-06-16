@@ -121,6 +121,7 @@ export const Dashboard = ({ user, setUser, setView }) => {
   const [isTyping, setIsTyping] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   // Loading States
   const [isConversationsLoading, setIsConversationsLoading] = useState(false);
@@ -344,14 +345,23 @@ export const Dashboard = ({ user, setUser, setView }) => {
     }
   };
 
-  // Local deletion of conversation state (since backend has no delete endpoint)
-  const handleDeleteConversation = (e, convId) => {
-    e.stopPropagation();
-    setConversations(prev => prev.filter(c => c._id !== convId));
-    if (activeConversationId === convId) {
-      setActiveConversationId(null);
+  // Permanent deletion of conversation from DB and state
+  const handleDeleteConversation = async (convId) => {
+    try {
+      await messageAPI.deleteConversation(convId);
+      setConversations(prev => prev.filter(c => c._id !== convId));
+      if (activeConversationId === convId) {
+        setActiveConversationId(null);
+        setMessages([]);
+      }
+      toast.success("Conversation deleted permanently.");
+    } catch (err) {
+      console.error("Failed to delete conversation", err);
+      const errMsg = err.response?.data?.message || err.message || "Failed to delete from database.";
+      toast.error(`Delete Failed: ${errMsg}`);
+    } finally {
+      setConfirmDeleteId(null);
     }
-    toast.success("Discussion cleared from session.");
   };
 
   // Copy code helper
@@ -424,27 +434,59 @@ export const Dashboard = ({ user, setUser, setView }) => {
             </div>
           )}
 
-          {conversations.map((conv) => (
-            <div 
-              key={conv._id} 
-              className={`conversation-item ${activeConversationId === conv._id ? "active" : ""}`}
-              onClick={() => {
-                setActiveConversationId(conv._id);
-                setSidebarOpen(false);
-              }}
-            >
-              <span className="conversation-title-text">
-                {conv.title || "Chat Session"}
-              </span>
-              <button 
-                className="conversation-delete-btn"
-                title="Remove Chat"
-                onClick={(e) => handleDeleteConversation(e, conv._id)}
+          {conversations.map((conv) => {
+            const isConfirming = confirmDeleteId === conv._id;
+            return (
+              <div 
+                key={conv._id} 
+                className={`conversation-item ${activeConversationId === conv._id ? "active" : ""} ${isConfirming ? "confirm-delete" : ""}`}
+                onClick={() => {
+                  if (!isConfirming) {
+                    setActiveConversationId(conv._id);
+                    setSidebarOpen(false);
+                  }
+                }}
               >
-                <TrashIcon />
-              </button>
-            </div>
-          ))}
+                {isConfirming ? (
+                  <div className="delete-confirm-wrapper" style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: "11px", fontWeight: "600", color: "var(--color-error)", whiteSpace: "nowrap" }}>Delete permanently?</span>
+                    <div style={{ display: "flex", gap: "6px" }}>
+                      <button 
+                        className="btn-text" 
+                        style={{ fontSize: "11px", fontWeight: "700", color: "var(--color-error)", background: "none", border: "none", cursor: "pointer", padding: "2px 4px" }}
+                        onClick={(e) => { e.stopPropagation(); handleDeleteConversation(conv._id); }}
+                      >
+                        Yes
+                      </button>
+                      <button 
+                        className="btn-text" 
+                        style={{ fontSize: "11px", fontWeight: "700", color: "var(--color-muted)", background: "none", border: "none", cursor: "pointer", padding: "2px 4px" }}
+                        onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
+                      >
+                        No
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <span className="conversation-title-text">
+                      {conv.title || "Chat Session"}
+                    </span>
+                    <button 
+                      className="conversation-delete-btn"
+                      title="Remove Chat"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setConfirmDeleteId(conv._id);
+                      }}
+                    >
+                      <TrashIcon />
+                    </button>
+                  </>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         <div className="sidebar-footer">

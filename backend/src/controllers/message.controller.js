@@ -222,4 +222,49 @@ const getMessages = async (req, res) => {
   }
 };
 
-export { createCoversation, getCoversations, sendMessage, getMessages };
+const deleteConversation = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+
+    // 1. Verify and find conversation owned by requesting user
+    const conversation = await Conversation.findOne({
+      _id: conversationId,
+      userId: req.user.id,
+    });
+
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message: "Conversation not found or unauthorized",
+      });
+    }
+
+    // 2. Find associated message IDs to clear extracted memories
+    const messages = await Message.find({ conversationId });
+    const messageIds = messages.map((m) => m._id);
+
+    // 3. Delete associated Memory records
+    if (messageIds.length > 0) {
+      await Memory.deleteMany({ sourceMessageId: { $in: messageIds } });
+    }
+
+    // 4. Delete messages in thread
+    await Message.deleteMany({ conversationId });
+
+    // 5. Delete conversation record itself
+    await Conversation.deleteOne({ _id: conversationId });
+
+    return res.status(200).json({
+      success: true,
+      message: "Conversation and associated messages/memories deleted permanently",
+    });
+  } catch (error) {
+    console.error("DELETE CONVERSATION ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+export { createCoversation, getCoversations, sendMessage, getMessages, deleteConversation };
