@@ -4,10 +4,16 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
 
-const MODEL_NAME = "gemini-2.0-flash";
+const MODEL_NAME = "gemini-2.5-flash";
 
 // convert internal format
 // to Gemini format
+
+const getClient = () => {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY is not set in environment");
+  return new GoogleGenAI({ apiKey });
+};
 
 const formatMessagesForGemini = (messages) => {
   return messages
@@ -43,6 +49,7 @@ const generateAIResponse = async ({
   maxOutputTokens = 500,
 }) => {
   try {
+    const ai = getClient();
     const systemInstruction =
       extractSystemPrompt(messages);
 
@@ -67,7 +74,7 @@ const generateAIResponse = async ({
     return {
       success: true,
 
-      response: response.text(),
+      response: response.text,
     };
   } catch (error) {
     console.error(
