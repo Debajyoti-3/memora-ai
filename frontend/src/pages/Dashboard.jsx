@@ -11,6 +11,107 @@ import {
   MenuIcon 
 } from "../components/Icons";
 
+const ErrorBubble = ({ message, retryText, onRetry }) => {
+  const [showDetails, setShowDetails] = useState(false);
+
+  // Map raw error to a friendly message
+  let friendlyTitle = "Unable to process message";
+  let friendlyMessage = "We encountered an unexpected issue while communicating with the AI model. Please try again in a moment.";
+  let icon = (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+      <line x1="12" y1="9" x2="12" y2="13"></line>
+      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+    </svg>
+  );
+
+  const lowerMessage = (message || "").toLowerCase();
+
+  if (lowerMessage.includes("network error") || lowerMessage.includes("unreachable") || lowerMessage.includes("connect")) {
+    friendlyTitle = "Connection Unreachable";
+    friendlyMessage = "Memora cannot reach the backend server. Please verify that your backend service is running locally on port 3000 and that you are connected to the network.";
+  } else if (lowerMessage.includes("unauthorized") || lowerMessage.includes("jwt") || lowerMessage.includes("token")) {
+    friendlyTitle = "Session Expired";
+    friendlyMessage = "Your security token has expired or is invalid. Please sign out and sign back in to establish a new session.";
+  } else if (lowerMessage.includes("api_key") || lowerMessage.includes("api key") || lowerMessage.includes("gemini")) {
+    friendlyTitle = "API Configuration Error";
+    friendlyMessage = "The server could not communicate with Google Gemini. This usually means the GEMINI_API_KEY is missing or invalid in the backend's .env file.";
+  }
+
+  return (
+    <div className="error-card anim-slide-up" style={{
+      backgroundColor: "rgba(198, 69, 69, 0.05)",
+      border: "1px solid rgba(198, 69, 69, 0.2)",
+      borderRadius: "12px",
+      padding: "16px",
+      display: "flex",
+      flexDirection: "column",
+      gap: "12px",
+      maxWidth: "500px",
+      textAlign: "left",
+      boxSizing: "border-box"
+    }}>
+      <div style={{ display: "flex", gap: "10px", alignItems: "center", color: "var(--color-error)" }}>
+        {icon}
+        <h4 style={{ margin: 0, fontWeight: 600, fontSize: "14.5px" }}>{friendlyTitle}</h4>
+      </div>
+      
+      <p style={{ margin: 0, fontSize: "13.5px", color: "var(--color-body)", lineHeight: "1.45" }}>
+        {friendlyMessage}
+      </p>
+
+      <div style={{ display: "flex", gap: "12px", alignItems: "center", marginTop: "4px" }}>
+        {onRetry && (
+          <button 
+            onClick={onRetry} 
+            className="btn btn-secondary" 
+            style={{ 
+              height: "30px", 
+              fontSize: "12px", 
+              padding: "0 12px",
+              borderColor: "rgba(198, 69, 69, 0.2)",
+              backgroundColor: "transparent",
+              color: "var(--color-error)",
+              borderRadius: "6px"
+            }}
+          >
+            Retry Message
+          </button>
+        )}
+        <button 
+          onClick={() => setShowDetails(!showDetails)}
+          className="btn btn-text" 
+          style={{ 
+            height: "30px", 
+            fontSize: "12px", 
+            padding: "0",
+            color: "var(--color-muted)"
+          }}
+        >
+          {showDetails ? "Hide details" : "Show technical details"}
+        </button>
+      </div>
+
+      {showDetails && (
+        <pre style={{
+          margin: "8px 0 0 0",
+          backgroundColor: "rgba(20, 20, 19, 0.03)",
+          border: "1px solid rgba(20, 20, 19, 0.08)",
+          borderRadius: "6px",
+          padding: "8px 12px",
+          fontSize: "11.5px",
+          fontFamily: "var(--font-mono)",
+          color: "var(--color-muted)",
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-all"
+        }}>
+          {message || "No technical details provided."}
+        </pre>
+      )}
+    </div>
+  );
+};
+
 export const Dashboard = ({ user, setUser, setView }) => {
   // --- States ---
   const [conversations, setConversations] = useState([]);
@@ -206,7 +307,9 @@ export const Dashboard = ({ user, setUser, setView }) => {
           return filtered.concat([{
             _id: `error-${Date.now()}`,
             role: "assistant",
-            content: `**Error**: ${errMsg}`
+            isError: true,
+            content: errMsg,
+            retryText: text
           }]);
         });
       }
@@ -258,6 +361,12 @@ export const Dashboard = ({ user, setUser, setView }) => {
       toast.success("Snippet copied to clipboard.");
       setTimeout(() => setCopiedIndex(null), 2000);
     });
+  };
+
+  // Retry failed message helper
+  const handleRetryMessage = async (errorMsgId, retryText) => {
+    setMessages(prev => prev.filter(m => m._id !== errorMsgId));
+    await sendMessageToServer(activeConversationId, retryText);
   };
 
   // Quick Prompt cards action
@@ -430,7 +539,13 @@ export const Dashboard = ({ user, setUser, setView }) => {
                     <div className="message-avatar">AI</div>
                   )}
                   <div className="message-bubble">
-                    {msg.role === "user" ? (
+                    {msg.isError ? (
+                      <ErrorBubble 
+                        message={msg.content} 
+                        retryText={msg.retryText} 
+                        onRetry={() => handleRetryMessage(msg._id, msg.retryText)} 
+                      />
+                    ) : msg.role === "user" ? (
                       <div className="message-text">{msg.content}</div>
                     ) : (
                       <MarkdownMessage 
