@@ -142,7 +142,7 @@ Guidelines:
         const memoryText = memoryResult.memory.memory;
 
         // Generate embedding vector
-        const embedding = await generateEmbedding(memoryText);
+        // const embedding = await generateEmbedding(memoryText);
 
         await Memory.create({
           userId: req.user.id,
@@ -153,14 +153,14 @@ Guidelines:
 
           importance: memoryResult.memory.importance,
 
-          embedding,
-
           sourceMessageId: userMessage._id,
         });
       } catch (error) {
         console.error("Memory creation error:", error);
       }
     }
+
+    if (!memoryResult.success) console.error("Memory extraction failed:", memoryResult.error); 
 
     return res.status(200).json({
       success: true,

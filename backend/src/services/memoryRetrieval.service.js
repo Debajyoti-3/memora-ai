@@ -110,7 +110,7 @@ const retrieveRelevantMemories = async ({ userId, message, limit = 10 }) => {
     const scoredMemories = memories
       .map((memory) => {
         const similarityScore = calculateKeywordSimilarity(
-          memory.content,
+          memory.text,
           keywords,
         );
 

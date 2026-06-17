@@ -70,13 +70,26 @@ const extractMemory = async ({ messages }) => {
       };
     }
 
+    const cleanJsonResponse = (raw) => {
+  if (!raw || typeof raw !== "string") return raw;
+  return raw
+    .trim()
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/, "")
+    .replace(/```\s*$/, "")
+    .trim();
+};
+
     // parsing JSON safely
 
     let parsedMemory;
+    // console.log("AI MEMORY EXTRACTION RESPONSE:", aiResult.response);
 
     try {
-      parsedMemory = JSON.parse(aiResult.response);
+      const cleaned = cleanJsonResponse(aiResult.response);
+      parsedMemory = JSON.parse(cleaned);
     } catch (parseError) {
+       console.error("MEMORY JSON PARSE FAILED. Raw response was:", aiResult.response);
       return {
         success: false,
         error: "Failed to parse memory JSON",
