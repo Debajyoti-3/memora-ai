@@ -17,14 +17,6 @@ const memorySchema = new mongoose.Schema(
 
     category: {
       type: String,
-      enum: [
-        "preference",
-        "personal",
-        "project",
-        "fact",
-        "conversation",
-        "general",
-      ],
       default: "general",
       index: true,
     },

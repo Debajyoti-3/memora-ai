@@ -137,6 +137,8 @@ Guidelines:
       messages: context,
     });
 
+    console.log("MEMORY RESULT:", JSON.stringify(memoryResult, null, 2));
+
     if (memoryResult.success && memoryResult.memory.shouldRemember) {
       try {
         const memoryText = memoryResult.memory.memory;
@@ -155,6 +157,7 @@ Guidelines:
 
           sourceMessageId: userMessage._id,
         });
+        console.log("Memory created successfully for message:");
       } catch (error) {
         console.error("Memory creation error:", error);
       }
