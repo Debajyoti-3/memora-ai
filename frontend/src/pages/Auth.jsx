@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { toast } from "sonner";
 import { authAPI } from "../services/api";
 import { SpikeLogo, EyeIcon, EyeOffIcon } from "../components/Icons";
+import { showErrorToast } from "../services/errorParser";
 
 export const Auth = ({ setUser, setView }) => {
   const [authMode, setAuthMode] = useState("login"); // 'login' or 'signup'
@@ -53,8 +54,7 @@ export const Auth = ({ setUser, setView }) => {
         toast.success(`Welcome back, ${loggedUser.fullName || "User"}!`);
       }
     } catch (err) {
-      const errMsg = err.response?.data?.message || err.message || "Authentication failed. Please check details.";
-      toast.error(errMsg);
+      showErrorToast(err, "Authentication Failed");
     } finally {
       setIsLoading(false);
     }
