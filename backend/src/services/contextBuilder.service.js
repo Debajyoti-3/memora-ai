@@ -38,7 +38,7 @@ const normalizeMessages = (messages) => {
 const formatMemoriesForPrompt = (memories) => {
   if (!memories.length) return "";
 
-  const memoryLines = memories.map((memory) => `- ${memory.content}`);
+  const memoryLines = memories.map((memory) => `- ${memory.text}`);
 
   return `
 Relevant User Memories:
@@ -52,7 +52,7 @@ const buildConversationContext = async ({
   currentMessage,
   systemPrompt = DEFAULT_SYSTEM_PROMPT,
 }) => {
-  // 1. Fetch recent conversation messages
+  // Fetch recent conversation messages
 
   const recentMessages = await fetchRecentMessages({
     conversationId,
@@ -60,7 +60,7 @@ const buildConversationContext = async ({
 
   const formattedMessages = normalizeMessages(recentMessages);
 
-  // 2. Retrieve relevant memories
+  //  Retrieve relevant memories
 
   const relevantMemories = await retrieveRelevantMemories({
     userId,
@@ -69,7 +69,9 @@ const buildConversationContext = async ({
 
   const memoryContext = formatMemoriesForPrompt(relevantMemories);
 
-  // 4. Inject memory into system prompt
+  console.log("Memory context for prompt:", memoryContext);
+
+  //  Inject memory into system prompt
 
   const enhancedSystemPrompt = `
 ${systemPrompt}
@@ -77,7 +79,7 @@ ${systemPrompt}
 ${memoryContext}
 `;
 
-  // 5. Final context
+  //  Final context
 
   const context = [
     {
