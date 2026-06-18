@@ -28,8 +28,16 @@ const normalizeText = (text) => {
   if (!text || typeof text !== "string") return "";
   return text
     .toLowerCase()
+    .replace(/'s\b/g, "")       // strip possessive 's before punctuation removal
     .replace(/[^\w\s]/g, "")
     .trim();
+};
+
+const simpleStem = (word) => {
+  if (word.length <= 3) return word;
+  if (word.endsWith("ies")) return word.slice(0, -3) + "y";   // categories -> category
+  if (word.endsWith("s") && !word.endsWith("ss")) return word.slice(0, -1); // friends -> friend, places -> place
+  return word;
 };
 
 //  Extract keywords from user message
@@ -37,7 +45,8 @@ const normalizeText = (text) => {
 const extractKeywords = (text) => {
   return normalizeText(text)
     .split(/\s+/)
-    .filter((word) => !STOPWORDS.includes(word));
+    .filter((word) => !STOPWORDS.includes(word))
+    .map(simpleStem);
 };
 
 // Calculate simple keyword match score
@@ -45,7 +54,7 @@ const extractKeywords = (text) => {
 const calculateKeywordSimilarity = (memoryText, keywords) => {
   if (!memoryText) return 0;
   const normalizedMemory = normalizeText(memoryText);
-  const memoryWords = normalizedMemory.split(/\s+/);
+  const memoryWords = normalizedMemory.split(/\s+/).map(simpleStem);
 
   let matches = 0;
 
