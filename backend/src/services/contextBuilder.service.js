@@ -1,5 +1,6 @@
 import { Message } from "../models/message.model.js";
 import { retrieveRelevantMemories } from "../services/memoryRetrieval.service.js";
+import { getRecentTurns , appendTurn} from "../services/stm.service.js";
 
 const MAX_CONTEXT_MESSAGES = 10;
 
@@ -35,6 +36,32 @@ const normalizeMessages = (messages) => {
   }));
 };
 
+const fetchRecentTurnsWithFallback = async (conversationId) => {
+  const stmTurns = await getRecentTurns(conversationId);
+
+  if (stmTurns.length > 0) {
+    // console.log(`Short Time Memory hit for conversation ${conversationId}`);
+    return stmTurns;
+  }
+
+  // console.log(`STM miss for conversation ${conversationId}, falling back to Mongo`);
+
+  const mongoMessages = await fetchRecentMessages({ conversationId });
+
+  // Optionally rehydrate STM so the next request hits cache
+  if (mongoMessages.length > 0) {
+    await rehydrateSTM(conversationId, mongoMessages);
+  }
+
+  return mongoMessages;
+};
+
+const rehydrateSTM = async (conversationId, messages) => {
+  for (const msg of messages) {
+    await appendTurn(conversationId, { role: msg.role, content: msg.content });
+  }
+};
+
 const formatMemoriesForPrompt = (memories) => {
   if (!memories.length) return "";
 
@@ -54,9 +81,7 @@ const buildConversationContext = async ({
 }) => {
   // Fetch recent conversation messages
 
-  const recentMessages = await fetchRecentMessages({
-    conversationId,
-  });
+  const recentMessages = await fetchRecentTurnsWithFallback(conversationId)
 
   const formattedMessages = normalizeMessages(recentMessages);
 

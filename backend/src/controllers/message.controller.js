@@ -5,6 +5,7 @@ import { generateAIResponse } from "../services/gemini.service.js";
 import { Memory } from "../models/memory.model.js";
 import { extractMemory } from "../services/memoryExtraction.service.js";
 import { generateEmbedding } from "../services/embedding.service.js";
+import { appendTurn } from "../services/stm.service.js";
 
 const createCoversation = async (req, res) => {
   try {
@@ -23,7 +24,7 @@ const createCoversation = async (req, res) => {
 
     return res.json({
       message: "Conversation created successfully",
-      conversation: newConversation
+      conversation: newConversation,
     });
   } catch (error) {
     console.log("Error in Conversation Creation: ", error.message);
@@ -86,6 +87,7 @@ const sendMessage = async (req, res) => {
       role: "user",
       content,
     });
+    await appendTurn(conversationId, { role: "user", content: content });
 
     // build context for AI response
     const context = await buildConversationContext({
@@ -113,6 +115,7 @@ Guidelines:
         message: aiResult.error,
       });
     }
+      await appendTurn(conversationId, { role: "assistant", content: aiResult.response });
 
     const assistantMessage = await Message.create({
       conversationId,
@@ -127,7 +130,8 @@ Guidelines:
 
     if (conversation.title === "New Chat" || !conversation.title) {
       const words = content.trim().split(/\s+/);
-      const titleText = words.slice(0, 5).join(" ") + (words.length > 5 ? "..." : "");
+      const titleText =
+        words.slice(0, 5).join(" ") + (words.length > 5 ? "..." : "");
       conversation.title = titleText;
     }
 
@@ -163,7 +167,8 @@ Guidelines:
       }
     }
 
-    if (!memoryResult.success) console.error("Memory extraction failed:", memoryResult.error); 
+    if (!memoryResult.success)
+      console.error("Memory extraction failed:", memoryResult.error);
 
     return res.status(200).json({
       success: true,
@@ -259,7 +264,8 @@ const deleteConversation = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Conversation and associated messages/memories deleted permanently",
+      message:
+        "Conversation and associated messages/memories deleted permanently",
     });
   } catch (error) {
     console.error("DELETE CONVERSATION ERROR:", error);
@@ -270,4 +276,10 @@ const deleteConversation = async (req, res) => {
   }
 };
 
-export { createCoversation, getCoversations, sendMessage, getMessages, deleteConversation };
+export {
+  createCoversation,
+  getCoversations,
+  sendMessage,
+  getMessages,
+  deleteConversation,
+};
