@@ -3,6 +3,7 @@ import { Toaster } from "sonner";
 import { Landing } from "./pages/Landing";
 import { Auth } from "./pages/Auth";
 import { Dashboard } from "./pages/Dashboard";
+import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 import "./App.css";
 
 function App() {
@@ -12,12 +13,14 @@ function App() {
     return saved ? JSON.parse(saved) : null;
   });
 
-  // Client-side router state: 'landing' | 'auth' | 'dashboard'
-  const [view, setView] = useState(() => {
-    // If user is already logged in, we can direct them straight to dashboard or landing.
-    // Let's start them at landing so they see the landing page, but they can click straight through.
-    return "landing";
-  });
+  // Client-side router state: 'landing' | 'auth' | 'dashboard' | 'privacy'
+  const [view, setView] = useState("landing");
+  const [privacyReferrer, setPrivacyReferrer] = useState("landing");
+
+  const navigateToPrivacy = (fromView) => {
+    setPrivacyReferrer(fromView);
+    setView("privacy");
+  };
 
   return (
     <>
@@ -29,10 +32,13 @@ function App() {
         <Landing user={user} setView={setView} />
       )}
       {view === "auth" && (
-        <Auth setUser={setUser} setView={setView} />
+        <Auth setUser={setUser} setView={setView} navigateToPrivacy={() => navigateToPrivacy("auth")} />
       )}
       {view === "dashboard" && (
         <Dashboard user={user} setUser={setUser} setView={setView} />
+      )}
+      {view === "privacy" && (
+        <PrivacyPolicy setView={setView} previousView={privacyReferrer} />
       )}
     </>
   );

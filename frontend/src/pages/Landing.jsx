@@ -1,5 +1,5 @@
 import React from "react";
-import { SpikeLogo } from "../components/Icons";
+import { MemoraLogo } from "../components/Icons";
 
 export const Landing = ({ user, setView }) => {
   return (
@@ -9,7 +9,7 @@ export const Landing = ({ user, setView }) => {
         <div className="landing-nav-inner">
           <div className="brand-wrapper" onClick={() => setView("landing")} style={{ cursor: "pointer" }}>
             <span className="brand-logo" style={{ color: "var(--color-primary)" }}>
-              <SpikeLogo size={22} />
+              <MemoraLogo size={24} />
             </span>
             <span className="brand-name">Memora AI</span>
           </div>
@@ -38,13 +38,14 @@ export const Landing = ({ user, setView }) => {
         <div className="hero-grid">
           <div className="hero-content">
             <div className="badge-coral" style={{ width: "fit-content", marginBottom: "24px" }}>
-              INTRODUCING CONTEXTUAL MEMORY
+              <span className="desktop-badge-text">INTRODUCING</span>
+              <span className="mobile-badge-text">INTRODUCING</span>
             </div>
             <h1 className="display-xl hero-title">
               Meet your thinking partner.
             </h1>
             <p className="body-md hero-subtitle">
-              Memora AI is a context-aware chatbot designed for deep work. It actively extracts memories from your conversations, builds contextual databases, and provides highly-personalized responses.
+              Memora AI is a context-aware chatbot designed for deep work. It actively extracts memories from your conversations, builds contextual memories, and provides highly-personalized responses.
             </p>
             <div className="hero-cta-group">
               <button 
@@ -74,7 +75,7 @@ export const Landing = ({ user, setView }) => {
                 <div className="mock-msg user">
                   <span className="mock-avatar">U</span>
                   <div className="mock-bubble">
-                    <p>I need a script that aggregates database logs, and please remember I use MongoDB for production.</p>
+                    <p>What is my name ? what you know about me ?</p>
                   </div>
                 </div>
                 <div className="mock-msg assistant">
@@ -82,16 +83,18 @@ export const Landing = ({ user, setView }) => {
                   <div className="mock-bubble">
                     <p className="mock-memory-tag">
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v20M2 12h20M5 5l14 14M19 5L5 19"/></svg>
-                      Recalled: User runs production on MongoDB
+                      Recalled: User <details><summary>John Doe</summary></details>
                     </p>
-                    <p>Here is a Node.js aggregation script tailored for your MongoDB cluster...</p>
-                    <pre className="mock-code-block">
-                      <code>{`const logs = await db.collection("logs")
-  .aggregate([
-    { $match: { status: "error" } },
-    { $group: { _id: "$code", count: { $sum: 1 } } }
-  ]).toArray();`}</code>
-                    </pre>
+                    <p>You are John Doe, a software engineer student </p>
+                    <div classname="m-2">
+                      <p>Here are the things that I know about you:</p>
+                      <ul classname="mock-memory-list m-2">
+                        <li>You are a software engineer student.</li>
+                        <li>You are interested in software development.</li>
+                        <li>You have a dog named Rex.</li>
+                      </ul>
+                    </div>
+                    
                   </div>
                 </div>
               </div>
@@ -154,14 +157,14 @@ export const Landing = ({ user, setView }) => {
         <div className="model-grid">
           <div className="model-card">
             <div className="badge-coral">PREMIUM</div>
-            <h3 className="display-sm text-white">Gemini 2.0 Flash</h3>
+            <h3 className="display-sm text-white">Gemini 2.5 Flash</h3>
             <p className="body-md text-muted-on-dark">
               Speed and reasoning capabilities perfectly suited for code generation, outline writing, and real-time context database queries.
             </p>
           </div>
           <div className="model-card">
             <div className="badge-pill" style={{ width: "fit-content", backgroundColor: "var(--color-surface-dark-elevated)", color: "var(--color-on-dark)" }}>EMBEDDING</div>
-            <h3 className="display-sm text-white">text-embedding-004</h3>
+            <h3 className="display-sm text-white">gemini-embedding-001</h3>
             <p className="body-md text-muted-on-dark">
               The embedding backbone converting conversation snippets into high-dimensional vectors to search your MongoDB memory indexes.
             </p>
@@ -194,12 +197,12 @@ export const Landing = ({ user, setView }) => {
           <div className="footer-brand-column">
             <div className="brand-wrapper" style={{ color: "var(--color-on-dark)" }}>
               <span className="brand-logo" style={{ color: "var(--color-primary)" }}>
-                <SpikeLogo size={26} />
+                <MemoraLogo size={26} />
               </span>
               <span className="brand-name">Memora AI</span>
             </div>
             <p className="body-sm footer-disclaimer">
-              Persisted vector memory assistant. Built on Gemini, Express, and MongoDB.
+               Memora AI is a context-aware chatbot designed for deep work. It actively extracts memories from your conversations, builds contextual memories, and provides highly-personalized responses.
             </p>
           </div>
 
@@ -215,8 +218,9 @@ export const Landing = ({ user, setView }) => {
           <div className="footer-links-column">
             <h4 className="title-sm text-white">Company</h4>
             <ul>
-              <li><a href="https://github.com/Debajyoti-3/memora-ai" target="_blank" rel="noreferrer">GitHub Project</a></li>
+              <li><a href="https://github.com/Debajyoti-3/memora-ai" target="_blank" rel="noreferrer">GitHub</a></li>
               <li><a href="https://github.com/Debajyoti-3/memora-ai#readme" target="_blank" rel="noreferrer">Documentation</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); setView("privacy"); }}>Privacy Policy</a></li>
             </ul>
           </div>
         </div>

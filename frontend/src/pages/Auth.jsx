@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { toast } from "sonner";
 import { authAPI } from "../services/api";
-import { SpikeLogo, EyeIcon, EyeOffIcon } from "../components/Icons";
+import { MemoraLogo, EyeIcon, EyeOffIcon } from "../components/Icons";
 import { showErrorToast } from "../services/errorParser";
 
-export const Auth = ({ setUser, setView }) => {
+export const Auth = ({ setUser, setView, navigateToPrivacy }) => {
   const [authMode, setAuthMode] = useState("login"); // 'login' or 'signup'
+  const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
   const [authFormData, setAuthFormData] = useState({
     fullName: "",
     email: "",
@@ -77,7 +78,7 @@ export const Auth = ({ setUser, setView }) => {
 
         <div className="auth-header">
           <div className="auth-logo">
-            <SpikeLogo size={36} style={{ color: "var(--color-primary)" }} />
+            <MemoraLogo size={36} style={{ color: "var(--color-primary)" }} />
           </div>
           <h1 className="auth-title">Memora AI</h1>
           <p className="auth-subtitle">
@@ -143,10 +144,39 @@ export const Auth = ({ setUser, setView }) => {
             </div>
           </div>
 
+          {authMode === "signup" && (
+            <div className="input-group" style={{ flexDirection: "row", alignItems: "center", gap: "8px", marginTop: "4px" }}>
+              <input
+                id="agreePrivacy"
+                type="checkbox"
+                style={{
+                  width: "16px",
+                  height: "16px",
+                  accentColor: "var(--color-primary)",
+                  cursor: "pointer"
+                }}
+                required
+                checked={agreedToPrivacy}
+                onChange={(e) => setAgreedToPrivacy(e.target.checked)}
+              />
+              <label htmlFor="agreePrivacy" style={{ fontSize: "13px", color: "var(--color-body)", cursor: "pointer", userSelect: "none" }}>
+                I agree to the{" "}
+                <button 
+                  type="button" 
+                  className="text-link" 
+                  onClick={navigateToPrivacy}
+                  style={{ padding: 0, border: "none", background: "none", fontSize: "inherit", cursor: "pointer", verticalAlign: "baseline" }}
+                >
+                  Privacy Policy
+                </button>
+              </label>
+            </div>
+          )}
+
           <button 
             type="submit" 
             className="btn btn-primary" 
-            disabled={isLoading}
+            disabled={isLoading || (authMode === "signup" && !agreedToPrivacy)}
             style={{ width: "100%", height: "42px", marginTop: "8px" }}
           >
             {isLoading 

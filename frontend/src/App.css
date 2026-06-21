@@ -676,7 +676,7 @@
 .landing-nav {
   height: 72px;
   border-bottom: 1px solid var(--color-hairline-soft);
-  background-color: rgba(250, 249, 245, 0.85);
+  background-color: rgba(9, 9, 11, 0.85);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   position: sticky;
@@ -1021,6 +1021,44 @@
   flex-direction: column;
   align-items: flex-start;
   box-sizing: border-box;
+  color: var(--color-on-primary);
+}
+
+.cta-band-coral .text-white {
+  color: var(--color-on-primary) !important;
+}
+
+/* Badge styles mapped from design guidelines */
+.badge-coral {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: var(--rounded-pill);
+  display: inline-block;
+}
+
+.badge-coral .mobile-badge-text {
+  display: none;
+}
+
+.badge-coral .desktop-badge-text {
+  display: inline;
+}
+
+.badge-pill {
+  background-color: var(--color-surface-card);
+  color: var(--color-ink);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: var(--rounded-pill);
+  display: inline-block;
 }
 
 /* Landing Footer */
@@ -1130,6 +1168,13 @@
   }
 }
 
+/* Desktop Sidebar toggle overrides */
+@media (min-width: 769px) {
+  .sidebar-toggle-btn {
+    display: none;
+  }
+}
+
 /* Medium Devices (< 768px) */
 @media (max-width: 768px) {
   .sidebar {
@@ -1173,6 +1218,28 @@
   .model-card {
     padding: var(--space-lg); /* 24px padding */
   }
+
+  /* Chat Feed mobile optimizations */
+  .messages-feed {
+    padding: var(--space-md) var(--space-sm);
+    gap: var(--space-md);
+  }
+  
+  .chat-input-container {
+    padding: 0 var(--space-sm) var(--space-sm);
+  }
+  
+  .message-row {
+    gap: var(--space-xs);
+  }
+  
+  .message-row.user .message-bubble {
+    max-width: 85%;
+  }
+  
+  .chat-header {
+    padding: 0 var(--space-md);
+  }
 }
 
 /* Mobile Viewports (< 500px) */
@@ -1194,6 +1261,14 @@
 
   .landing-section {
     padding: 48px var(--space-md); /* tighter padding for small screens */
+  }
+
+  .badge-coral .desktop-badge-text {
+    display: none;
+  }
+
+  .badge-coral .mobile-badge-text {
+    display: inline;
   }
   
   .hero-title {

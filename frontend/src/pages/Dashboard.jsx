@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { authAPI, messageAPI } from "../services/api";
 import { MarkdownMessage } from "../components/MarkdownMessage";
 import { 
-  SpikeLogo, 
+  MemoraLogo, 
   TrashIcon, 
   PlusIcon, 
   SendIcon, 
@@ -464,7 +464,7 @@ export const Dashboard = ({ user, setUser, setView }) => {
         <div className="sidebar-header">
           <div className="brand-wrapper" onClick={() => setView("landing")} style={{ cursor: "pointer" }}>
             <span className="brand-logo" style={{ color: "var(--color-primary)" }}>
-              <SpikeLogo />
+              <MemoraLogo />
             </span>
             <span className="brand-name">Memora AI</span>
           </div>
@@ -594,7 +594,7 @@ export const Dashboard = ({ user, setUser, setView }) => {
         {!activeConversationId && messages.length === 0 ? (
           <div className="empty-chat-state anim-fade-in">
             <div className="welcome-logo">
-              <SpikeLogo />
+              <MemoraLogo size={48} />
             </div>
             <h1 className="welcome-title">Meet your thinking partner.</h1>
             <p className="welcome-subtitle">
