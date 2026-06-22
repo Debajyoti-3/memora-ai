@@ -9,9 +9,30 @@ env.config({
 
 const app = express();
 
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(",").map(o => o.trim())
+  : ["http://localhost:5173"];
+
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      
+      const isAllowed = allowedOrigins.some(allowed => {
+        if (allowed === "*") return true;
+        if (allowed.includes("*")) {
+          const regexStr = "^" + allowed.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$";
+          return new RegExp(regexStr).test(origin);
+        }
+        return allowed === origin;
+      });
+
+      if (isAllowed) {
+        return callback(null, true);
+      } else {
+        return callback(new Error(`Origin ${origin} not allowed by CORS`));
+      }
+    },
     credentials: true,
   }),
 );

@@ -94,7 +94,13 @@ const loginUser = async (req, res) => {
 
 const logoutUser = async (req, res) => {
   try {
-    res.cookie("token", "", { maxAge: 0 });
+    const isProduction = process.env.NODE_ENV === "production";
+    res.cookie("token", "", {
+      maxAge: 0,
+      httpOnly: true,
+      sameSite: isProduction ? "none" : "lax",
+      secure: isProduction,
+    });
     res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
     console.log("Error in logout", error.message);
@@ -108,7 +114,13 @@ const deleteAccount = async (req, res) => {
 
     await User.findByIdAndDelete(userId);
 
-    res.cookie("token", "", { maxAge: 0 });
+    const isProduction = process.env.NODE_ENV === "production";
+    res.cookie("token", "", {
+      maxAge: 0,
+      httpOnly: true,
+      sameSite: isProduction ? "none" : "lax",
+      secure: isProduction,
+    });
 
     res.status(200).json({ message: "Account deleted successfully" });
   } catch (error) {

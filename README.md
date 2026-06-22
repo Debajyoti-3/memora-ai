@@ -95,6 +95,31 @@ VITE_API_URL=http://localhost:5173
 
 ---
 
+##  Deployment
+
+### 1. Backend (Render)
+When deploying the Express backend to [Render](https://render.com):
+* **Build Command**: `npm install`
+* **Start Command**: `npm start`
+* **Environment Variables**:
+  * `NODE_ENV`: `production`
+  * `MONGODB_URI`: Your MongoDB Atlas connection string
+  * `DB_NAME`: `db`
+  * `CORS_ORIGIN`: `https://memora-ai-pi.vercel.app` (or a comma-separated list like `https://memora-ai-pi.vercel.app,http://localhost:5173` to allow both production and local development)
+  * `JWT_SECRET_KEY`: A secure random string for JWT signatures
+  * `GEMINI_API_KEY`: Your Gemini API developer key
+  * `REDIS_URL`: Your production Redis server URL (e.g., from Upstash or Redis Labs)
+
+### 2. Frontend (Vercel)
+When deploying the Vite + React frontend to [Vercel](https://vercel.com):
+* **Root Directory**: `frontend`
+* **Build Command**: `npm run build`
+* **Output Directory**: `dist`
+* **Environment Variables**:
+  * `VITE_API_URL`: `https://memora-ai-9i3n.onrender.com/api/v1`
+
+---
+
 ##  Privacy & Compliance
 
 Memora AI incorporates user privacy indicators:

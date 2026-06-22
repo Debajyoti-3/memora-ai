@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Create configured Axios instance
 const api = axios.create({
-  baseURL: "http://localhost:3000/api/v1",
+  baseURL: import.meta.env.VITE_API_URL || "https://memora-ai-9i3n.onrender.com/api/v1",
   withCredentials: true, // Enable automatically passing cookies for cross-origin credentials
   headers: {
     "Content-Type": "application/json",
