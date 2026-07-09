@@ -14,17 +14,29 @@ export const Landing = ({ user, setView }) => {
             <span className="brand-name">Memora AI</span>
           </div>
 
+          <div className="landing-nav-links" aria-label="Primary navigation">
+            <a href="#features">Platform</a>
+            <a href="https://github.com/Debajyoti-3/memora-ai" target="_blank" rel="noreferrer">Developers</a>
+            <a href="https://github.com/Debajyoti-3/memora-ai#readme" target="_blank" rel="noreferrer">Resources</a>
+            <a href="https://github.com/Debajyoti-3/memora-ai" target="_blank" rel="noreferrer">Company</a>
+          </div>
+
           <div className="nav-actions">
             {user ? (
-              <button className="btn btn-primary" onClick={() => setView("dashboard")}>
-                Go to Dashboard
-              </button>
+              <>
+                <button className="btn btn-primary nav-primary-action" onClick={() => setView("dashboard")}>
+                  Go to Dashboard
+                </button>
+                <a href="https://github.com/Debajyoti-3/memora-ai" target="_blank" rel="noreferrer" className="btn btn-secondary nav-secondary-action">
+                  Contact Us
+                </a>
+              </>
             ) : (
               <>
                 <button className="btn btn-text nav-link-text" onClick={() => setView("auth")}>
                   Sign In
                 </button>
-                <button className="btn btn-primary" onClick={() => setView("auth")}>
+                <button className="btn btn-primary nav-primary-action" onClick={() => setView("auth")}>
                   Try Memora AI
                 </button>
               </>
@@ -146,7 +158,7 @@ export const Landing = ({ user, setView }) => {
       </section>
 
       {/* Model Grid Section (Alternating Page Rhythm) */}
-      <section className="model-section landing-section dark-section">
+      <section id="models" className="model-section landing-section dark-section">
         <div className="section-header text-center">
           <h2 className="display-lg section-title text-white">Models configured to think.</h2>
           <p className="body-md section-subtitle text-muted-on-dark">
@@ -164,7 +176,7 @@ export const Landing = ({ user, setView }) => {
           </div>
           <div className="model-card">
             <div className="badge-pill" style={{ width: "fit-content", backgroundColor: "var(--color-surface-dark-elevated)", color: "var(--color-on-dark)" }}>EMBEDDING</div>
-            <h3 className="display-sm text-white">gemini-embedding-001</h3>
+            <h3 className="display-sm text-white">jina-embeddings-3</h3>
             <p className="body-md text-muted-on-dark">
               The embedding backbone converting conversation snippets into high-dimensional vectors to search your MongoDB memory indexes.
             </p>
@@ -225,7 +237,7 @@ export const Landing = ({ user, setView }) => {
           </div>
         </div>
         <div className="footer-bottom">
-          <p className="body-sm">&copy; {new Date().getFullYear()} Memora AI. Warm-Editorial Design System.</p>
+          <p className="body-sm">&copy; {new Date().getFullYear()} Memora AI</p>
         </div>
       </footer>
     </div>
