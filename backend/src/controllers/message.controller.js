@@ -280,10 +280,52 @@ const deleteConversation = async (req, res) => {
   }
 };
 
+const renameConversation = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { title } = req.body;
+
+    if (!title || title.trim() === "") {
+      return res.status(400).json({
+        success: false,
+        message: "Title is required",
+      });
+    }
+
+    const conversation = await Conversation.findOne({
+      _id: conversationId,
+      userId: req.user.id,
+    });
+
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message: "Conversation not found or unauthorized",
+      });
+    }
+
+    conversation.title = title.trim();
+    await conversation.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Conversation renamed successfully",
+      conversation,
+    });
+  } catch (error) {
+    console.error("RENAME CONVERSATION ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
 export {
   createCoversation,
   getCoversations,
   sendMessage,
   getMessages,
   deleteConversation,
+  renameConversation,
 };

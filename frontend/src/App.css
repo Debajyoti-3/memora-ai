@@ -206,29 +206,84 @@
   padding-right: var(--space-sm);
 }
 
-.conversation-delete-btn {
+.conversation-menu-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.conversation-options-btn {
   background: transparent;
   border: none;
   cursor: pointer;
   opacity: 0;
-  color: var(--color-muted-soft);
+  color: var(--color-muted);
   transition: opacity 0.2s, color 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: var(--rounded-xs);
 }
 
-.conversation-item:hover .conversation-delete-btn {
+.conversation-item:hover .conversation-options-btn,
+.conversation-options-btn.active {
   opacity: 1;
 }
 
-.conversation-delete-btn:hover {
-  color: var(--color-error);
-  background-color: rgba(198, 69, 69, 0.08);
+.conversation-options-btn:hover {
+  color: var(--color-ink);
+  background-color: var(--color-surface-cream-strong);
 }
+
+.conversation-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background-color: var(--color-surface-soft);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--rounded-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  min-width: 120px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.conversation-dropdown-menu .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: var(--color-body-strong);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--rounded-xs);
+  width: 100%;
+  text-align: left;
+  transition: background-color 0.1s, color 0.1s;
+}
+
+.conversation-dropdown-menu .dropdown-item:hover {
+  background-color: var(--color-surface-cream-strong);
+  color: var(--color-ink);
+}
+
+.conversation-dropdown-menu .dropdown-item.delete-item {
+  color: var(--color-error);
+}
+
+.conversation-dropdown-menu .dropdown-item.delete-item:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--color-error);
+}
+
 
 .sidebar-footer {
   padding: var(--space-md);

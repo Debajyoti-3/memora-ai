@@ -47,6 +47,10 @@ export const messageAPI = {
     const response = await api.delete(`/message/delete-conversation/${conversationId}`);
     return response.data;
   },
+  renameConversation: async (conversationId, title) => {
+    const response = await api.put(`/message/rename-conversation/${conversationId}`, { title });
+    return response.data;
+  },
 };
 
 export default api;
