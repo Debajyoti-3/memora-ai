@@ -115,7 +115,10 @@ Guidelines:
         message: aiResult.error,
       });
     }
-      await appendTurn(conversationId, { role: "assistant", content: aiResult.response });
+    await appendTurn(conversationId, {
+      role: "assistant",
+      content: aiResult.response,
+    });
 
     const assistantMessage = await Message.create({
       conversationId,
@@ -148,12 +151,13 @@ Guidelines:
         const memoryText = memoryResult.memory.memory;
 
         // Generate embedding vector
-        // const embedding = await generateEmbedding(memoryText);
+        const embedding = await generateEmbedding(memoryText);
 
         await Memory.create({
           userId: req.user.id,
 
           text: memoryResult.memory.memory,
+          embedding,
 
           category: memoryResult.memory.category,
 

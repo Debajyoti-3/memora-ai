@@ -1,4 +1,5 @@
 import { Memory } from "../models/memory.model.js";
+import {generateEmbedding} from "./embedding.service.js";
 
 const STOPWORDS = [
   "the",
@@ -95,70 +96,132 @@ const calculateMemoryScore = ({
   );
 };
 
-//   Retrieve relevant memories
+// ─── retrieval paths ──────────────────────────────────────────────────────────
 
-const retrieveRelevantMemories = async ({ userId, message, limit = 10 }) => {
-  try {
-    // extract keywords from current user message
-    if (!message || typeof message !== "string") return [];
-    const keywords = extractKeywords(message);
+const keywordRetrieval = async (userId, keywords, limit) => {
+  // your original logic — untouched
+  const memories = await Memory.find({ userId, isArchived: false })
+    .sort({ importance: -1, lastAccessedAt: -1 })
+    .limit(100)
+    .lean();
 
-    if (!keywords.length) {
-      return [];
-    }
-
-    // candiate retrieval
-    const memories = await Memory.find({
-      userId,
-      isArchived: false,
-    })
-      .sort({ importance: -1, lastAccessedAt: -1 })
-      .limit(100)
-      .lean();
-
-    const scoredMemories = memories
-      .map((memory) => {
-        const similarityScore = calculateKeywordSimilarity(
-          memory.text,
-          keywords,
-        );
-
-        const finalScore = calculateMemoryScore({
+  return memories
+    .map((memory) => {
+      const similarityScore = calculateKeywordSimilarity(memory.text, keywords);
+      return {
+        ...memory,
+        similarityScore,
+        score: calculateMemoryScore({
           similarityScore,
           importance: memory.importance,
           createdAt: memory.createdAt,
           accessCount: memory.accessCount,
-        });
+        }),
+        retrievedBy: "keyword", // tag for dedup logic
+      };
+    })
+    .filter((m) => m.similarityScore > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+};
 
-        return {
-          ...memory,
-          similarityScore,
-          score: finalScore,
-        };
-      })
-      .filter((memory) => memory.similarityScore > 0);
-
-    // sorting by highest score
-    scoredMemories.sort((a, b) => b.score - a.score);
-
-    const topMemories = scoredMemories.slice(0, limit);
-
-    // Memory Reinforcement
-    await Memory.updateMany(
-      {
-        _id: {
-          $in: topMemories.map((m) => m._id),
-        },
+const vectorRetrieval = async (userId, queryEmbedding, limit) => {
+  // $vectorSearch must be the FIRST stage in the pipeline — Atlas requirement
+  const results = await Memory.aggregate([
+    {
+      $vectorSearch: {
+        index: "memory_vector_index",
+        path: "embedding",
+        queryVector: queryEmbedding,
+        numCandidates: limit * 10, // how many docs Atlas considers internally before returning top results
+        limit: limit,             // how many it returns to us
+        filter: { userId },       // only search this user's memories — requires userId filter field in index
       },
-      {
-        $inc: { accessCount: 1 },
-        $set: {
-          lastAccessedAt: new Date(),
-        },
-      },
+    },
+    {
+      // $meta: "vectorSearchScore" gives us the cosine similarity Atlas computed
+      $addFields: { vectorScore: { $meta: "vectorSearchScore" } },
+    },
+    {
+      $match: { isArchived: false },
+    },
+  ]);
+
+  return results.map((memory) => ({
+    ...memory,
+    similarityScore: memory.vectorScore,   // cosine similarity (0-1) plugs straight into calculateMemoryScore
+    score: calculateMemoryScore({
+      similarityScore: memory.vectorScore,
+      importance: memory.importance,
+      createdAt: memory.createdAt,
+      accessCount: memory.accessCount,
+    }),
+    retrievedBy: "vector",
+  }));
+};
+
+// ─── merge & deduplicate ──────────────────────────────────────────────────────
+
+const mergeAndRank = (vectorResults, keywordResults, limit) => {
+  const seen = new Map();
+
+  // vector results get priority — add them first
+  for (const memory of vectorResults) {
+    seen.set(memory._id.toString(), memory);
+  }
+
+  // keyword results fill in anything vector missed
+  // if a memory appears in both, keep the vector version (higher quality score)
+  for (const memory of keywordResults) {
+    const id = memory._id.toString();
+    if (!seen.has(id)) {
+      seen.set(id, memory);
+    }
+  }
+
+  return Array.from(seen.values())
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+};
+
+// main export 
+
+const retrieveRelevantMemories = async ({ userId, message, limit = 10 }) => {
+  try {
+    if (!message || typeof message !== "string") return [];
+
+    const keywords = extractKeywords(message);
+
+    // run both retrievals in parallel — no reason to wait for one before starting the other
+    const queryEmbedding = await generateEmbedding(message, "retrieval.query");
+
+    const [vectorResults, keywordResults] = await Promise.all([
+      // if embedding failed (empty array), skip vector search entirely
+      queryEmbedding.length > 0
+        ? vectorRetrieval(userId, queryEmbedding, limit)
+        : Promise.resolve([]),
+
+      // keyword search runs regardless — fallback if embedding fails
+      keywords.length > 0
+        ? keywordRetrieval(userId, keywords, limit)
+        : Promise.resolve([]),
+    ]);
+
+    console.log(
+      `Retrieval — vector: ${vectorResults.length} results, keyword: ${keywordResults.length} results`
     );
 
-    return topMemories;
+    const merged = mergeAndRank(vectorResults, keywordResults, limit);
+
+    if (merged.length === 0) return [];
+
+    // memory reinforcement runs on final merged set — same as before
+    await Memory.updateMany(
+      { _id: { $in: merged.map((m) => m._id) } },
+      { $inc: { accessCount: 1 }, $set: { lastAccessedAt: new Date() } }
+    );
+
+    return merged;
   } catch (error) {
     console.error("Memory Retrieval Error:", error);
     return [];
