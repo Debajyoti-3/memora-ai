@@ -1,135 +1,178 @@
-# Memory Pipeline (Current Version)
+# Memory Pipeline (Semantic + Keyword Hybrid Search)
 
-This document explains how Memora-AI remembers things about a user across conversations. This is the **current, working implementation** — keyword-based retrieval, no vector embeddings yet. That's a future upgrade, not part of this version.
+This document details how Memora-AI remembers personal facts and preferences about a user across conversations. 
+
+Memora-AI employs a **Hybrid Memory Retrieval Pipeline** combining **Semantic Vector Search** (using Jina AI embeddings + MongoDB Atlas `$vectorSearch`) and **Keyword Search** (token-based word matching with stemming). This hybrid approach offers the best of both worlds: capturing conceptual meaning and synonyms while maintaining a robust exact-match keyword fallback.
+
+---
 
 ## The Big Picture
 
-Every time a user sends a message, five things happen in order:
+Every time a user sends a message, the memory system goes through a 5-step lifecycle:
 
 ```
 User sends message
         |
         v
-1. RETRIEVE   -> find old memories relevant to this message
+1. RETRIEVE   -> Run parallel Semantic (Vector) + Keyword searches, then merge and rank results
         |
         v
-2. BUILD CONTEXT -> combine system prompt + relevant memories + recent chat history + new message
+2. BUILD CONTEXT -> Assemble system prompt + retrieved memories + recent chat history + new message
         |
         v
-3. GENERATE   -> send context to Gemini, get AI response
+3. GENERATE   -> Send context to Gemini API, get the chat response
         |
         v
-4. EXTRACT    -> ask Gemini "was anything worth remembering here?"
+4. EXTRACT    -> Analyze conversation thread with Gemini to extract new facts
         |
         v
-5. STORE      -> if yes, save it to MongoDB for future conversations
+5. STORE      -> Generate Jina AI embedding for new facts and store them in MongoDB
 ```
 
-The key idea: **memory and chat are separate systems that talk to each other.** The chat doesn't "remember" anything by itself — every fact it knows about the user has to be explicitly pulled from MongoDB and stuffed into the prompt before Gemini ever sees it.
+The long-term memory system is decoupled from the chat loop: memories persist globally per user across all conversation threads, pulled dynamically into the LLM context only when relevant.
 
 ---
 
-## Step 1: Retrieval (`memory-retrieval.service.js`)
+## Step 1: Hybrid Retrieval ([memoryRetrieval.service.js](file:///C:/Users/Asus/xCODE/memora-ai/backend/src/services/memoryRetrieval.service.js))
 
-When a new message comes in, this function looks through everything stored about that user in MongoDB and scores each memory for relevance.
+When a new message comes in, `retrieveRelevantMemories` runs two parallel query streams to find relevant facts:
 
-**How scoring works (no AI involved — pure keyword matching):**
+```
+                      User Message
+                           |
+            +--------------+--------------+
+            |                             |
+            v                             v
+     Keyword Search                 Semantic Search
+   (Extract tokens &              (Call Jina API for
+   calculate match score)           query embedding)
+            |                             |
+            |                             v
+            |                    MongoDB Atlas Vector
+            |                    Search ($vectorSearch)
+            |                             |
+            +--------------+--------------+
+                           |
+                           v
+                     Merge & Rank
+                (Deduplicate & Score)
+                           |
+                           v
+                Top N Relevant Memories
+```
 
-1. Take the user's new message, lowercase it, strip punctuation, remove common filler words (stopwords like "the", "is", "my").
-2. What's left are the "keywords" — e.g. "what is my father's name" becomes `["fathers", "name"]`.
-3. For every stored memory, check how many of those keywords appear in the memory's text. More matches = higher similarity score.
-4. Combine that similarity score with three other factors into one final score:
-   - **Similarity** (60% weight) — keyword overlap, described above
-   - **Importance** (25% weight) — a 1-10 score Gemini assigned when the memory was created
-   - **Recency** (10% weight) — newer memories score slightly higher; decays over 30 days
-   - **Access count** (5% weight) — memories that get retrieved often score slightly higher
-5. Sort by final score, return the top matches (default: top 10).
-6. Bump `accessCount` and `lastAccessedAt` on whatever memories got returned, so frequently-relevant memories rise over time.
+### A. Semantic Search Path (Vector Search)
+1. **Query Embedding:** Memora-AI sends the user message to Jina AI's embedding endpoint (`https://api.jina.ai/v1/embeddings`) via [embedding.service.js](file:///C:/Users/Asus/xCODE/memora-ai/backend/src/services/embedding.service.js) using the **`jina-embeddings-v3`** model. The query is embedded as a **1024-dimension vector** of floating-point numbers.
+2. **MongoDB Atlas `$vectorSearch`:** The embedding is queried against MongoDB Atlas using the `$vectorSearch` aggregation stage:
+   - **Index:** `memory_vector_index`
+   - **Path:** `embedding`
+   - **Metric:** Cosine similarity
+   - **Pre-filtering:** Filters search space strictly by `userId` to maintain secure user isolation.
+3. **Similarity Score:** The cosine similarity score returned by Atlas (ranging from 0 to 1) is extracted via `$meta: "vectorSearchScore"`.
 
-**Important limitation:** this is pure word-matching, not meaning-matching. If a memory says "User enjoys hiking" and someone asks "what outdoor activities do I like?", there's zero literal word overlap, so it won't be found. This is exactly the gap that vector embeddings (a future step) will fix.
+### B. Keyword Search Path (Word Matching)
+As a fallback (e.g. if the embedding API is rate-limited or offline, or for exact terminology/proper names), a keyword search runs concurrently:
+1. **Tokenization:** The user message is normalized (converted to lowercase, possessive `'s` stripped, punctuation removed).
+2. **Stopwords Filtering:** Common filler words (like "the", "is", "my", "to") are stripped.
+3. **Stemming:** Words are normalized using a simple stemmer (e.g., converting "categories" -> "category", "friends" -> "friend").
+4. **Keyword Score:** Stored memories are scanned for matching keyword tokens. The raw similarity score is calculated as `matches / keywords.length`.
+
+### C. Re-Ranking & Scoring Formula
+Once both lists of candidate memories are fetched, they are merged and deduplicated. If a memory appears in both search results, the higher-quality vector result is preserved.
+
+Each memory's relevance is evaluated using a composite formula to calculate its final ranking score:
+
+$$\text{Final Score} = (\text{Similarity Score} \times 0.60) + (\text{Normalized Importance} \times 0.25) + (\text{Recency Score} \times 0.10) + (\text{Access Score} \times 0.05)$$
+
+* **Similarity Score (60% weight):** Either the cosine similarity score (vector path) or the keyword overlap percentage (keyword path).
+* **Normalized Importance (25% weight):** The 1–10 importance score assigned by Gemini during extraction, divided by 10.
+* **Recency Score (10% weight):** A time-decay score. Fresh memories start at 1.0 and decay lineary to 0.0 over 30 days.
+* **Access Score (5% weight):** A reinforcing score based on how frequently the memory is retrieved (capped at 20 accesses, `min(accessCount / 20, 1)`).
+
+The merged list is sorted by this composite score, and the top matches (default: up to 10) are returned.
+
+### D. Memory Reinforcement
+To make frequently-relevant memories float to the top in the future, the retrieval service performs a bulk increment update on the returned memories:
+- Increments `accessCount` by 1.
+- Sets `lastAccessedAt` to the current timestamp.
 
 ---
 
-## Step 2: Context Building (`contextBuilder.service.js`)
+## Step 2: Context Building ([contextBuilder.service.js](file:///C:/Users/Asus/xCODE/memora-ai/backend/src/services/contextBuilder.service.js))
 
-This takes the retrieved memories, the recent message history for the current conversation, and the system prompt, and assembles them into one message array shaped the way Gemini expects (`{ role, content }` objects).
+This stage formats the retrieved memories into standard system guidelines. 
 
-This is the step that actually **closes the loop** between "a memory exists in the database" and "the AI can see it." If this step skips or mishandles retrieval, memories can exist perfectly fine in MongoDB and still never reach the model.
-
----
-
-## Step 3: Generate Response (`gemini.service.js`)
-
-The assembled context is sent to Gemini, which generates the actual reply shown to the user. Nothing memory-specific happens here — this is just the normal chat completion call.
+The context builder formats the memories list as a bulleted text block and injects it directly into the system instructions before appending the user's chat history and active message. This ensures the AI model has immediate, context-relevant facts before formulating its answer.
 
 ---
 
-## Step 4: Memory Extraction (`memoryExtraction.service.js`)
+## Step 3: Response Generation ([gemini.service.js](file:///C:/Users/Asus/xCODE/memora-ai/backend/src/services/gemini.service.js))
 
-After the AI replies, a **second, separate** call is made to Gemini — this time with a different system prompt whose only job is to look at the conversation and decide if anything worth remembering long-term was said.
+The fully built context is passed to the Gemini model to generate a response. The model naturally references facts injected in the system prompt to customize its responses (e.g., remembering a family member's name or a technical preference).
 
-It's instructed to return strict JSON:
+---
+
+## Step 4: Memory Extraction ([memoryExtraction.service.js](file:///C:/Users/Asus/xCODE/memora-ai/backend/src/services/memoryExtraction.service.js))
+
+After the response is shown to the user, a background extraction cycle is run:
+1. The recent conversation turns are sent to Gemini with a dedicated prompt that asks: *"Is there any durable personal detail, background fact, relationship, or preference worth remembering in this exchange?"*
+2. Gemini returns a structured JSON payload:
+   ```json
+   {
+     "shouldRemember": true,
+     "memory": "User prefers coding in React and node.js.",
+     "category": "preferences",
+     "importance": 7
+   }
+   ```
+3. A JSON cleanup helper strips any Markdown code blocks (e.g., ` ```json ` fences) before parsing to prevent parsing crashes.
+
+---
+
+## Step 5: Storage ([message.controller.js](file:///C:/Users/Asus/xCODE/memora-ai/backend/src/controllers/message.controller.js))
+
+If `shouldRemember` is `true`, the extraction pipeline saves the new memory:
+1. **Vector Embedding Generation:** The service calls `generateEmbedding` with the extracted `memory` text, generating a **1024-dimension float array** (vector) using Jina AI's `jina-embeddings-v3` model.
+2. **MongoDB Insertion:** A new `Memory` document is created in MongoDB:
 
 ```json
 {
-  "shouldRemember": true,
-  "memory": "User's father's name is Biswajit Mitra and he lives near Kharagpur.",
-  "category": "Family",
-  "importance": 7
+  "userId": "60d5ecb8b5a7537b045eef81",
+  "text": "User prefers coding in React and node.js.",
+  "embedding": [0.0123, -0.0456, ..., 0.0891], // 1024 floats
+  "category": "preferences",
+  "importance": 7,
+  "accessCount": 0,
+  "lastAccessedAt": null,
+  "isArchived": false,
+  "sourceMessageId": "60d5ecb8b5a7537b045eef82"
 }
 ```
 
-It's told to ignore greetings, small talk, and one-off requests, and only flag durable facts — preferences, background, goals, relationships, habits.
+This vector is now stored in MongoDB, ready for instant semantic retrieval in future conversations.
 
-**A real bug we hit here:** Gemini doesn't always return plain JSON — it often wraps the response in markdown code fences, like:
+---
 
-````
+## MongoDB Atlas Vector Search Index Configuration
+
+To support semantic search, MongoDB Atlas requires a vector search index (`memory_vector_index`) defined on the `memories` collection:
+
 ```json
-{ "shouldRemember": true, ... }
-```
-````
-
-A plain `JSON.parse()` call chokes on that string because it doesn't start with `{`. The fix was to strip the fences before parsing:
-
-```javascript
-const cleanJsonResponse = (raw) => {
-  if (!raw || typeof raw !== "string") return raw;
-  return raw
-    .trim()
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/, "")
-    .replace(/```\s*$/, "")
-    .trim();
-};
+{
+  "fields": [
+    {
+      "type": "knnVector",
+      "path": "embedding",
+      "dimensions": 1024,
+      "similarity": "cosine"
+    },
+    {
+      "type": "filter",
+      "path": "userId"
+    }
+  ]
+}
 ```
 
-Before this fix, extraction silently failed on almost every response — `JSON.parse` threw, the catch block returned `success: false`, and the calling code just skipped storage with no error shown anywhere. Nothing crashed, nothing logged loudly — memories just quietly never got saved. This is why visible logging at every step (not just on error) matters a lot in a pipeline like this.
-
----
-
-## Step 5: Storage (`Memory.create()` in the controller)
-
-If `shouldRemember` came back `true`, a new document is saved to MongoDB:
-
-| Field | Meaning |
-|---|---|
-| `userId` | who this memory belongs to |
-| `text` | the actual memory content, in plain English |
-| `category` | short label like "Family", "Preference", "Goal" |
-| `importance` | 1–10, set by Gemini during extraction |
-| `accessCount` | how many times this memory has been retrieved (starts at 0) |
-| `lastAccessedAt` | last time it was pulled into a context (starts null) |
-| `isArchived` | soft-delete flag, false by default |
-| `sourceMessageId` | links back to the user message that triggered this memory |
-
-This document is now sitting in MongoDB, available to be picked up by Step 1 (Retrieval) the *next* time this user sends *any* message, in *any* conversation. That's what makes this long-term memory rather than just chat history — it's not tied to a single conversation thread.
-
----
-
-## What This Version Does NOT Do Yet
-
-- No vector embeddings / semantic search (matching by meaning, not just exact words)
-- No memory consolidation (merging duplicate/similar memories over time)
-- No automatic forgetting beyond the soft `isArchived` flag and recency score decay
-
-These are the next layer to build, and are what will give this project its strongest "depth" signal for the FYP — the current version is the working scaffold they sit on top of.
+- **`knnVector`:** Specifies the vector search settings, mapping the `embedding` field with `1024` dimensions and the `cosine` metric.
+- **`filter`:** Defines index fields that can be used for pre-filtering (specifically isolating queries by `userId`).
