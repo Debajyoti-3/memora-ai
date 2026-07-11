@@ -197,6 +197,14 @@ export const Dashboard = ({ user, setUser, setView }) => {
   const [isConversationsLoading, setIsConversationsLoading] = useState(false);
   const [isMessagesLoading, setIsMessagesLoading] = useState(false);
 
+  // Profile & Memory States
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [memories, setMemories] = useState([]);
+  const [isMemoriesLoading, setIsMemoriesLoading] = useState(false);
+  const [isDeletingMemoryId, setIsDeletingMemoryId] = useState(null);
+  const [memorySearchQuery, setMemorySearchQuery] = useState("");
+  const [activeMemoryCategoryFilter, setActiveMemoryCategoryFilter] = useState("All");
+
   // Reference for Auto scroll & guard checks
   const feedEndRef = useRef(null);
   const textInputRef = useRef(null);
@@ -250,6 +258,48 @@ export const Dashboard = ({ user, setUser, setView }) => {
       textInputRef.current.focus();
     }
   }, [activeConversationId]);
+
+  // Fetch memories when profile modal is opened
+  useEffect(() => {
+    if (isProfileOpen) {
+      const fetchMemories = async () => {
+        setIsMemoriesLoading(true);
+        try {
+          const res = await messageAPI.getUserMemories();
+          if (res.status === 200) {
+            setMemories(res.memories || []);
+          } else {
+            toast.error(res.message || "Failed to load memories");
+          }
+        } catch (err) {
+          console.error("Fetch memories error:", err);
+          toast.error("Failed to load memories");
+        } finally {
+          setIsMemoriesLoading(false);
+        }
+      };
+      fetchMemories();
+    }
+  }, [isProfileOpen]);
+
+  // Delete memory API handler
+  const handleDeleteMemory = async (memoryId) => {
+    setIsDeletingMemoryId(memoryId);
+    try {
+      const res = await messageAPI.deleteMemory(memoryId);
+      if (res.status === 200) {
+        toast.success("Memory deleted successfully");
+        setMemories((prev) => prev.filter((m) => m._id !== memoryId));
+      } else {
+        toast.error(res.message || "Failed to delete memory");
+      }
+    } catch (err) {
+      console.error("Delete memory error:", err);
+      toast.error("Failed to delete memory");
+    } finally {
+      setIsDeletingMemoryId(null);
+    }
+  };
 
   // --- API Integrations ---
 
@@ -685,7 +735,7 @@ export const Dashboard = ({ user, setUser, setView }) => {
         </div>
 
         <div className="sidebar-footer">
-          <div className="user-profile">
+          <div className="user-profile clickable" onClick={() => setIsProfileOpen(true)} title="View Profile & Memories">
             <div className="avatar-circle">{userInitial}</div>
             <div className="user-info">
               <span className="user-name">{user?.fullName}</span>
@@ -845,6 +895,166 @@ export const Dashboard = ({ user, setUser, setView }) => {
           </div>
         </div>
       </main>
+
+      {/* Profile & Memory Modal */}
+      {isProfileOpen && (
+        <div className="profile-modal-overlay" onClick={() => setIsProfileOpen(false)}>
+          <div className="profile-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="profile-modal-header">
+              <h3 className="profile-modal-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-primary)" }}>
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                <span>Security & Memories</span>
+              </h3>
+              <button className="profile-modal-close-btn" onClick={() => setIsProfileOpen(false)} title="Close">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            
+            <div className="profile-modal-body">
+              {/* User Profile Info Card */}
+              <div className="profile-user-panel">
+                <div className="profile-avatar-large">{userInitial}</div>
+                <div className="profile-user-meta">
+                  <div className="profile-user-name-title">{user?.fullName || "User"}</div>
+                  <div className="profile-user-email-text">{user?.email}</div>
+                  <span className="profile-user-security-badge">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "4px" }}>
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    End-to-end Encrypted Session
+                  </span>
+                </div>
+              </div>
+              
+              {/* Memories Section */}
+              <div className="memories-section-header">
+                <h4 className="memories-section-title">Stored Personal Context</h4>
+                
+                {/* Search Bar */}
+                <div className="memory-search-wrapper">
+                  <span className="memory-search-icon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                  </span>
+                  <input
+                    type="text"
+                    className="memory-search-input"
+                    placeholder="Search memory text or category..."
+                    value={memorySearchQuery}
+                    onChange={(e) => setMemorySearchQuery(e.target.value)}
+                  />
+                </div>
+                
+                {/* Category Pills (Dynamic) */}
+                {memories.length > 0 && (
+                  <div className="memory-category-filters">
+                    {["All", ...new Set(memories.map((m) => m.category || "general"))].map((cat) => (
+                      <button
+                        key={cat}
+                        className={`category-filter-pill ${activeMemoryCategoryFilter === cat ? "active" : ""}`}
+                        onClick={() => setActiveMemoryCategoryFilter(cat)}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {/* Memories List */}
+              {isMemoriesLoading ? (
+                <div style={{ textAlign: "center", padding: "40px", color: "var(--color-muted-soft)", fontSize: "14px" }}>
+                  Retrieving secure memories...
+                </div>
+              ) : memories.length === 0 ? (
+                <div className="memory-empty-state">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: "8px" }}>
+                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                  </svg>
+                  <p className="memory-empty-text">
+                    No persistent memories found. As you converse, Memora automatically extracts key details to personalize your experience.
+                  </p>
+                </div>
+              ) : (() => {
+                const filtered = memories.filter((mem) => {
+                  const query = memorySearchQuery.toLowerCase();
+                  const matchesSearch = mem.text.toLowerCase().includes(query) || 
+                    (mem.category && mem.category.toLowerCase().includes(query));
+                  const matchesCategory = activeMemoryCategoryFilter === "All" ||
+                    (mem.category || "general").toLowerCase() === activeMemoryCategoryFilter.toLowerCase();
+                  return matchesSearch && matchesCategory;
+                });
+                
+                if (filtered.length === 0) {
+                  return (
+                    <div style={{ textAlign: "center", padding: "24px", color: "var(--color-muted)", fontSize: "13px" }}>
+                      No memories match your filter criteria.
+                    </div>
+                  );
+                }
+                
+                return (
+                  <div className="memories-container">
+                    {filtered.map((mem) => (
+                      <div key={mem._id} className="memory-item-card">
+                        <div className="memory-item-content">
+                          <p className="memory-item-text">{mem.text}</p>
+                          <div className="memory-item-meta">
+                            <span className="memory-badge category-badge">
+                              {mem.category || "general"}
+                            </span>
+                            {mem.importance && (
+                              <span className="memory-badge importance-badge">
+                                Impact: {mem.importance}/10
+                              </span>
+                            )}
+                            <span className="memory-badge time-badge">
+                              Stored {new Date(mem.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          className="memory-delete-btn"
+                          title="Purge Memory"
+                          onClick={() => handleDeleteMemory(mem._id)}
+                          disabled={isDeletingMemoryId === mem._id}
+                        >
+                          {isDeletingMemoryId === mem._id ? (
+                            <span className="typing-dot" style={{ width: "4px", height: "4px", margin: "0 2px" }}></span>
+                          ) : (
+                            <TrashIcon size={14} />
+                          )}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+              
+              {/* Disclaimer */}
+              <div className="profile-disclaimer-box">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginTop: "2px" }}>
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <span>
+                  <strong>Privacy Control:</strong> These facts are saved to personalize your AI responses. Deleting a fact permanently erases it from your database record.
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -82,7 +82,7 @@ const loginUser = async (req, res) => {
         success: true,
         _id: user._id,
         email: user.email,
-        fullNmae: user.fullName,
+        fullName: user.fullName,
         profilePic: user.profilePic,
       },
     });

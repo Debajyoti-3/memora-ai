@@ -321,6 +321,66 @@ const renameConversation = async (req, res) => {
   }
 };
 
+const getUserMemories = async (req, res) => {
+  try {
+    const fetchedUser = req.user;
+
+    if (!fetchedUser) {
+      return res.status(401).json({
+        status: 401,
+        message: "User not found or unauthenticated",
+      });
+    }
+    const userMemories = await Memory.find({ userId: fetchedUser.id }).sort({
+      createdAt: -1,
+    });
+    return res.status(200).json({
+      status: 200,
+      message: "User memories retrieved successfully",
+      memories: userMemories,
+    });
+  } catch (error) {
+    console.error("FETCHING USER MEMORIES ERROR:", error);
+    return res.status(500).json({
+      status: 500,
+      message: "Internal server error",
+    });
+  }
+};
+
+const deleteMemory = async (req, res) => {
+  try {
+    const { memoryId } = req.params;
+
+    if (!memoryId) {
+      return res.status(400).json({
+        status: 400,
+        message: "Memory ID is required",
+      });
+    }
+    
+    const result = await Memory.deleteOne({ _id: memoryId, userId: req.user.id });
+    
+    if (result.deletedCount === 0) {
+      return res.status(404).json({
+        status: 404,
+        message: "Memory not found or unauthorized",
+      });
+    }
+
+    return res.status(200).json({
+      status: 200,
+      message: "Memory deleted successfully",
+    });
+  } catch (error) {
+    console.error("DELETE MEMORY ERROR:", error);
+    return res.status(500).json({
+      status: 500,
+      message: "Internal server error",
+    });
+  }
+};
+
 export {
   createCoversation,
   getCoversations,
@@ -328,4 +388,6 @@ export {
   getMessages,
   deleteConversation,
   renameConversation,
+  getUserMemories,
+  deleteMemory,
 };

@@ -51,6 +51,14 @@ export const messageAPI = {
     const response = await api.put(`/message/rename-conversation/${conversationId}`, { title });
     return response.data;
   },
+  getUserMemories: async () => {
+    const response = await api.get("/message/get-user-memories");
+    return response.data;
+  },
+  deleteMemory: async (memoryId) => {
+    const response = await api.delete(`/message/delete-memory/${memoryId}`);
+    return response.data;
+  },
 };
 
 export default api;
