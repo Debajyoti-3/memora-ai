@@ -2,48 +2,98 @@ import React, { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { authAPI, messageAPI } from "../services/api";
 import { MarkdownMessage } from "../components/MarkdownMessage";
-import { 
-  MemoraLogo, 
-  TrashIcon, 
-  PlusIcon, 
-  SendIcon, 
-  LogoutIcon, 
+import {
+  MemoraLogo,
+  TrashIcon,
+  PlusIcon,
+  SendIcon,
+  LogoutIcon,
   MenuIcon,
   MoreIcon,
-  EditIcon
+  EditIcon,
 } from "../components/Icons";
 import { parseError, showErrorToast } from "../services/errorParser";
 
 // Premium error icons matching the design language
 const RateLimitIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ flexShrink: 0 }}
+  >
     <circle cx="12" cy="12" r="10" />
     <polyline points="12 6 12 12 16 14" />
   </svg>
 );
 
 const NetworkIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ flexShrink: 0 }}
+  >
     <path d="M22.61 16.95A5 5 0 0 0 18 10h-1.26a8 8 0 0 0-15.19 2A6 6 0 0 0 6 24h13a5 5 0 0 0 3.61-7.05z" />
     <line x1="2" y1="2" x2="22" y2="22" />
   </svg>
 );
 
 const AuthIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ flexShrink: 0 }}
+  >
     <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
   </svg>
 );
 
 const ConfigIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ flexShrink: 0 }}
+  >
     <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
   </svg>
 );
 
 const ServerIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ flexShrink: 0 }}
+  >
     <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
     <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
     <line x1="6" y1="6" x2="6.01" y2="6" />
@@ -52,7 +102,17 @@ const ServerIcon = () => (
 );
 
 const AlertIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ flexShrink: 0 }}
+  >
     <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
     <line x1="12" y1="9" x2="12" y2="13" />
     <line x1="12" y1="17" x2="12.01" y2="17" />
@@ -81,76 +141,111 @@ const ErrorBubble = ({ message, retryText, onRetry }) => {
   const parsed = parseError(message);
 
   return (
-    <div className="error-card anim-slide-up" style={{
-      backgroundColor: "rgba(198, 69, 69, 0.03)",
-      border: "1px solid rgba(198, 69, 69, 0.18)",
-      borderRadius: "12px",
-      padding: "16px",
-      display: "flex",
-      flexDirection: "column",
-      gap: "12px",
-      maxWidth: "520px",
-      textAlign: "left",
-      boxSizing: "border-box",
-      boxShadow: "0 2px 8px rgba(198, 69, 69, 0.02)"
-    }}>
-      <div style={{ display: "flex", gap: "10px", alignItems: "center", color: "var(--color-error)" }}>
+    <div
+      className="error-card anim-slide-up"
+      style={{
+        backgroundColor: "rgba(198, 69, 69, 0.03)",
+        border: "1px solid rgba(198, 69, 69, 0.18)",
+        borderRadius: "12px",
+        padding: "16px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "12px",
+        maxWidth: "520px",
+        textAlign: "left",
+        boxSizing: "border-box",
+        boxShadow: "0 2px 8px rgba(198, 69, 69, 0.02)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          gap: "10px",
+          alignItems: "center",
+          color: "var(--color-error)",
+        }}
+      >
         {getErrorIcon(parsed.type)}
-        <h4 style={{ margin: 0, fontWeight: 600, fontSize: "14px", fontFamily: "var(--font-sans)", letterSpacing: "-0.2px" }}>
+        <h4
+          style={{
+            margin: 0,
+            fontWeight: 600,
+            fontSize: "14px",
+            fontFamily: "var(--font-sans)",
+            letterSpacing: "-0.2px",
+          }}
+        >
           {parsed.friendlyTitle}
         </h4>
         {parsed.isDev && (
-          <span style={{
-            fontSize: "8.5px",
-            backgroundColor: "rgba(198, 69, 69, 0.08)",
-            color: "var(--color-error)",
-            padding: "1.5px 5px",
-            borderRadius: "4px",
-            textTransform: "uppercase",
-            fontWeight: "700",
-            letterSpacing: "0.5px"
-          }}>
+          <span
+            style={{
+              fontSize: "8.5px",
+              backgroundColor: "rgba(198, 69, 69, 0.08)",
+              color: "var(--color-error)",
+              padding: "1.5px 5px",
+              borderRadius: "4px",
+              textTransform: "uppercase",
+              fontWeight: "700",
+              letterSpacing: "0.5px",
+            }}
+          >
             Dev
           </span>
         )}
       </div>
-      
-      <p style={{ margin: 0, fontSize: "13.5px", color: "var(--color-body)", lineHeight: "1.5", fontFamily: "var(--font-sans)" }}>
+
+      <p
+        style={{
+          margin: 0,
+          fontSize: "13.5px",
+          color: "var(--color-body)",
+          lineHeight: "1.5",
+          fontFamily: "var(--font-sans)",
+        }}
+      >
         {parsed.friendlyMessage}
       </p>
 
-      <div style={{ display: "flex", gap: "12px", alignItems: "center", marginTop: "2px" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "12px",
+          alignItems: "center",
+          marginTop: "2px",
+        }}
+      >
         {onRetry && (
-          <button 
-            onClick={onRetry} 
-            className="btn btn-secondary" 
-            style={{ 
-              height: "28px", 
-              fontSize: "11px", 
+          <button
+            onClick={onRetry}
+            className="btn btn-secondary"
+            style={{
+              height: "28px",
+              fontSize: "11px",
               padding: "0 10px",
               borderColor: "rgba(198, 69, 69, 0.2)",
               backgroundColor: "transparent",
               color: "var(--color-error)",
               borderRadius: "6px",
               cursor: "pointer",
-              fontWeight: 500
+              fontWeight: 500,
             }}
           >
             Retry Message
           </button>
         )}
         {parsed.isDev && (
-          <button 
+          <button
             onClick={() => setShowDetails(!showDetails)}
-            className="btn btn-text" 
-            style={{ 
-              height: "28px", 
-              fontSize: "11px", 
+            className="btn btn-text"
+            style={{
+              height: "28px",
+              fontSize: "11px",
               padding: "0",
               color: "var(--color-muted)",
               cursor: "pointer",
               background: "none",
-              border: "none"
+              border: "none",
             }}
           >
             {showDetails ? "Hide technical details" : "Show technical details"}
@@ -159,19 +254,21 @@ const ErrorBubble = ({ message, retryText, onRetry }) => {
       </div>
 
       {parsed.isDev && showDetails && (
-        <pre style={{
-          margin: "4px 0 0 0",
-          backgroundColor: "rgba(20, 20, 19, 0.03)",
-          border: "1px solid rgba(20, 20, 19, 0.08)",
-          borderRadius: "6px",
-          padding: "10px 12px",
-          fontSize: "11px",
-          fontFamily: "var(--font-mono)",
-          color: "var(--color-muted)",
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-all",
-          lineHeight: "1.4"
-        }}>
+        <pre
+          style={{
+            margin: "4px 0 0 0",
+            backgroundColor: "rgba(20, 20, 19, 0.03)",
+            border: "1px solid rgba(20, 20, 19, 0.08)",
+            borderRadius: "6px",
+            padding: "10px 12px",
+            fontSize: "11px",
+            fontFamily: "var(--font-mono)",
+            color: "var(--color-muted)",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-all",
+            lineHeight: "1.4",
+          }}
+        >
           {parsed.technicalDetails || "No technical details provided."}
         </pre>
       )}
@@ -188,6 +285,17 @@ export const Dashboard = ({ user, setUser, setView }) => {
   const [isTyping, setIsTyping] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return localStorage.getItem("memora_sidebar_collapsed") === "true";
+  });
+
+  const toggleSidebarCollapsed = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("memora_sidebar_collapsed", String(next));
+      return next;
+    });
+  };
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [menuOpenConvId, setMenuOpenConvId] = useState(null);
   const [editingConvId, setEditingConvId] = useState(null);
@@ -202,8 +310,7 @@ export const Dashboard = ({ user, setUser, setView }) => {
   const [memories, setMemories] = useState([]);
   const [isMemoriesLoading, setIsMemoriesLoading] = useState(false);
   const [isDeletingMemoryId, setIsDeletingMemoryId] = useState(null);
-  const [memorySearchQuery, setMemorySearchQuery] = useState("");
-  const [activeMemoryCategoryFilter, setActiveMemoryCategoryFilter] = useState("All");
+  const [deletingMemoryConfirmId, setDeletingMemoryConfirmId] = useState(null);
 
   // Reference for Auto scroll & guard checks
   const feedEndRef = useRef(null);
@@ -261,6 +368,7 @@ export const Dashboard = ({ user, setUser, setView }) => {
 
   // Fetch memories when profile modal is opened
   useEffect(() => {
+    setDeletingMemoryConfirmId(null);
     if (isProfileOpen) {
       const fetchMemories = async () => {
         setIsMemoriesLoading(true);
@@ -290,6 +398,7 @@ export const Dashboard = ({ user, setUser, setView }) => {
       if (res.status === 200) {
         toast.success("Memory deleted successfully");
         setMemories((prev) => prev.filter((m) => m._id !== memoryId));
+        setDeletingMemoryConfirmId(null);
       } else {
         toast.error(res.message || "Failed to delete memory");
       }
@@ -338,7 +447,11 @@ export const Dashboard = ({ user, setUser, setView }) => {
     setIsMessagesLoading(true);
     try {
       const result = await messageAPI.getMessages(convId);
-      if (activeConversationIdRef.current === convId && result.success && result.messages) {
+      if (
+        activeConversationIdRef.current === convId &&
+        result.success &&
+        result.messages
+      ) {
         setMessages(result.messages);
       }
     } catch (err) {
@@ -360,15 +473,15 @@ export const Dashboard = ({ user, setUser, setView }) => {
 
       if (result.conversation && result.conversation._id) {
         const newConv = result.conversation;
-        setConversations(prev => [newConv, ...prev]);
-        
+        setConversations((prev) => [newConv, ...prev]);
+
         // Optimistically set message list if we have an initial message
         if (initialMessage.trim()) {
           const tempUserMsg = {
             _id: `temp-user-${Date.now()}`,
             role: "user",
             content: initialMessage,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
           };
           setMessages([tempUserMsg]);
         } else {
@@ -393,19 +506,23 @@ export const Dashboard = ({ user, setUser, setView }) => {
   };
 
   // Send message helper
-  const sendMessageToServer = async (convId, text, alreadyAddedOptimistically = false) => {
+  const sendMessageToServer = async (
+    convId,
+    text,
+    alreadyAddedOptimistically = false,
+  ) => {
     setIsTyping(true);
-    
+
     // Add User Message Optimistically if not already added
     const tempUserMsg = {
       _id: `temp-user-${Date.now()}`,
       role: "user",
       content: text,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
-    
+
     if (!alreadyAddedOptimistically) {
-      setMessages(prev => [...prev, tempUserMsg]);
+      setMessages((prev) => [...prev, tempUserMsg]);
     }
 
     try {
@@ -414,13 +531,16 @@ export const Dashboard = ({ user, setUser, setView }) => {
       if (result.success) {
         if (activeConversationIdRef.current === convId) {
           // Remove temp and add actual user & assistant messages
-          setMessages(prev => {
-            const filtered = alreadyAddedOptimistically 
-              ? prev.filter(m => !m._id.startsWith("temp-user-")) // filter any temp user messages
-              : prev.filter(m => m._id !== tempUserMsg._id);
-            return filtered.concat([result.userMessage, result.assistantMessage]);
+          setMessages((prev) => {
+            const filtered = alreadyAddedOptimistically
+              ? prev.filter((m) => !m._id.startsWith("temp-user-")) // filter any temp user messages
+              : prev.filter((m) => m._id !== tempUserMsg._id);
+            return filtered.concat([
+              result.userMessage,
+              result.assistantMessage,
+            ]);
           });
-          
+
           // Refresh conversation list to show updated title dynamically generated by backend
           fetchConversations();
         }
@@ -430,21 +550,26 @@ export const Dashboard = ({ user, setUser, setView }) => {
     } catch (err) {
       console.error("Failed to send message", err);
       if (activeConversationIdRef.current === convId) {
-        const errMsg = err.response?.data?.message || err.message || "Could not connect to the assistant.";
+        const errMsg =
+          err.response?.data?.message ||
+          err.message ||
+          "Could not connect to the assistant.";
         showErrorToast(err, "Query Failed");
-        
+
         // Add error system message
-        setMessages(prev => {
-          const filtered = alreadyAddedOptimistically 
-            ? prev.filter(m => !m._id.startsWith("temp-user-"))
-            : prev.filter(m => m._id !== tempUserMsg._id);
-          return filtered.concat([{
-            _id: `error-${Date.now()}`,
-            role: "assistant",
-            isError: true,
-            content: errMsg,
-            retryText: text
-          }]);
+        setMessages((prev) => {
+          const filtered = alreadyAddedOptimistically
+            ? prev.filter((m) => !m._id.startsWith("temp-user-"))
+            : prev.filter((m) => m._id !== tempUserMsg._id);
+          return filtered.concat([
+            {
+              _id: `error-${Date.now()}`,
+              role: "assistant",
+              isError: true,
+              content: errMsg,
+              retryText: text,
+            },
+          ]);
         });
       }
     } finally {
@@ -482,7 +607,7 @@ export const Dashboard = ({ user, setUser, setView }) => {
   const handleDeleteConversation = async (convId) => {
     try {
       await messageAPI.deleteConversation(convId);
-      setConversations(prev => prev.filter(c => c._id !== convId));
+      setConversations((prev) => prev.filter((c) => c._id !== convId));
       if (activeConversationId === convId) {
         setActiveConversationId(null);
         setMessages([]);
@@ -504,7 +629,11 @@ export const Dashboard = ({ user, setUser, setView }) => {
     }
     try {
       await messageAPI.renameConversation(convId, newTitle);
-      setConversations(prev => prev.map(c => c._id === convId ? { ...c, title: newTitle.trim() } : c));
+      setConversations((prev) =>
+        prev.map((c) =>
+          c._id === convId ? { ...c, title: newTitle.trim() } : c,
+        ),
+      );
       toast.success("Conversation renamed successfully.");
     } catch (err) {
       console.error("Failed to rename conversation", err);
@@ -525,7 +654,7 @@ export const Dashboard = ({ user, setUser, setView }) => {
 
   // Retry failed message helper
   const handleRetryMessage = async (errorMsgId, retryText) => {
-    setMessages(prev => prev.filter(m => m._id !== errorMsgId));
+    setMessages((prev) => prev.filter((m) => m._id !== errorMsgId));
     await sendMessageToServer(activeConversationId, retryText);
   };
 
@@ -538,18 +667,32 @@ export const Dashboard = ({ user, setUser, setView }) => {
   };
 
   // Get User Initial for Avatar
-  const userInitial = user?.fullName ? user.fullName.charAt(0).toUpperCase() : "U";
+  const userInitial = user?.fullName
+    ? user.fullName.charAt(0).toUpperCase()
+    : "U";
 
   return (
     <div className="dashboard-container">
       {/* Mobile Sidebar Overlay */}
-      {sidebarOpen && <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)}></div>}
+      {sidebarOpen && (
+        <div
+          className="sidebar-backdrop"
+          onClick={() => setSidebarOpen(false)}
+        ></div>
+      )}
 
       {/* Sidebar Panel */}
-      <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
+      <aside className={`sidebar ${sidebarOpen ? "open" : ""} ${sidebarCollapsed ? "collapsed" : ""}`}>
         <div className="sidebar-header">
-          <div className="brand-wrapper" onClick={() => setView("landing")} style={{ cursor: "pointer" }}>
-            <span className="brand-logo" style={{ color: "var(--color-primary)" }}>
+          <div
+            className="brand-wrapper"
+            onClick={() => setView("landing")}
+            style={{ cursor: "pointer" }}
+          >
+            <span
+              className="brand-logo"
+              style={{ color: "var(--color-primary)" }}
+            >
               <MemoraLogo />
             </span>
             <span className="brand-name">Memora AI</span>
@@ -557,8 +700,8 @@ export const Dashboard = ({ user, setUser, setView }) => {
         </div>
 
         <div className="sidebar-action">
-          <button 
-            className="btn btn-secondary new-chat-btn" 
+          <button
+            className="btn btn-secondary new-chat-btn"
             onClick={() => {
               setActiveConversationId(null);
               setSidebarOpen(false);
@@ -571,15 +714,30 @@ export const Dashboard = ({ user, setUser, setView }) => {
 
         <div className="conversations-list">
           <div className="conversations-section-title">Conversations</div>
-          
+
           {isConversationsLoading && (
-            <div style={{ textAlign: "center", padding: "16px", fontSize: "13px", color: "var(--color-muted-soft)" }}>
+            <div
+              style={{
+                textAlign: "center",
+                padding: "16px",
+                fontSize: "13px",
+                color: "var(--color-muted-soft)",
+              }}
+            >
               Loading chats...
             </div>
           )}
 
           {!isConversationsLoading && conversations.length === 0 && (
-            <div style={{ padding: "12px", fontSize: "13px", color: "var(--color-muted-soft)", fontStyle: "italic", textAlign: "center" }}>
+            <div
+              style={{
+                padding: "12px",
+                fontSize: "13px",
+                color: "var(--color-muted-soft)",
+                fontStyle: "italic",
+                textAlign: "center",
+              }}
+            >
               No chats yet. Start one!
             </div>
           )}
@@ -587,8 +745,8 @@ export const Dashboard = ({ user, setUser, setView }) => {
           {conversations.map((conv) => {
             const isConfirming = confirmDeleteId === conv._id;
             return (
-              <div 
-                key={conv._id} 
+              <div
+                key={conv._id}
                 className={`conversation-item ${activeConversationId === conv._id ? "active" : ""} ${isConfirming ? "confirm-delete" : ""}`}
                 onClick={() => {
                   if (!isConfirming && editingConvId !== conv._id) {
@@ -598,9 +756,18 @@ export const Dashboard = ({ user, setUser, setView }) => {
                 }}
               >
                 {editingConvId === conv._id ? (
-                  <div className="rename-input-wrapper" style={{ display: "flex", width: "100%", alignItems: "center", gap: "6px" }} onClick={(e) => e.stopPropagation()}>
-                    <input 
-                      type="text" 
+                  <div
+                    className="rename-input-wrapper"
+                    style={{
+                      display: "flex",
+                      width: "100%",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <input
+                      type="text"
                       className="rename-input"
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
@@ -621,12 +788,14 @@ export const Dashboard = ({ user, setUser, setView }) => {
                         padding: "4px 8px",
                         fontSize: "13px",
                         color: "var(--color-ink)",
-                        outline: "none"
+                        outline: "none",
                       }}
                     />
-                    <button 
+                    <button
                       className="btn-save"
-                      onClick={() => handleRenameConversation(conv._id, editTitle)}
+                      onClick={() =>
+                        handleRenameConversation(conv._id, editTitle)
+                      }
                       style={{
                         background: "none",
                         border: "none",
@@ -634,15 +803,24 @@ export const Dashboard = ({ user, setUser, setView }) => {
                         color: "var(--color-success)",
                         padding: "2px",
                         display: "flex",
-                        alignItems: "center"
+                        alignItems: "center",
                       }}
                       title="Save"
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
                     </button>
-                    <button 
+                    <button
                       className="btn-cancel"
                       onClick={() => setEditingConvId(null)}
                       style={{
@@ -652,31 +830,79 @@ export const Dashboard = ({ user, setUser, setView }) => {
                         color: "var(--color-muted)",
                         padding: "2px",
                         display: "flex",
-                        alignItems: "center"
+                        alignItems: "center",
                       }}
                       title="Cancel"
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                       </svg>
                     </button>
                   </div>
                 ) : isConfirming ? (
-                  <div className="delete-confirm-wrapper" style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between" }}>
-                    <span style={{ fontSize: "11px", fontWeight: "600", color: "var(--color-error)", whiteSpace: "nowrap" }}>Delete permanently?</span>
+                  <div
+                    className="delete-confirm-wrapper"
+                    style={{
+                      display: "flex",
+                      width: "100%",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "11px",
+                        fontWeight: "600",
+                        color: "var(--color-error)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      Delete permanently?
+                    </span>
                     <div style={{ display: "flex", gap: "6px" }}>
-                      <button 
-                        className="btn-text" 
-                        style={{ fontSize: "11px", fontWeight: "700", color: "var(--color-error)", background: "none", border: "none", cursor: "pointer", padding: "2px 4px" }}
-                        onClick={(e) => { e.stopPropagation(); handleDeleteConversation(conv._id); }}
+                      <button
+                        className="btn-text"
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          color: "var(--color-error)",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: "2px 4px",
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteConversation(conv._id);
+                        }}
                       >
                         Yes
                       </button>
-                      <button 
-                        className="btn-text" 
-                        style={{ fontSize: "11px", fontWeight: "700", color: "var(--color-muted)", background: "none", border: "none", cursor: "pointer", padding: "2px 4px" }}
-                        onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
+                      <button
+                        className="btn-text"
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          color: "var(--color-muted)",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: "2px 4px",
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setConfirmDeleteId(null);
+                        }}
                       >
                         No
                       </button>
@@ -687,22 +913,27 @@ export const Dashboard = ({ user, setUser, setView }) => {
                     <span className="conversation-title-text">
                       {conv.title || "Chat Session"}
                     </span>
-                    <div className="conversation-menu-container" onClick={(e) => e.stopPropagation()}>
-                      <button 
+                    <div
+                      className="conversation-menu-container"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
                         className={`conversation-options-btn ${menuOpenConvId === conv._id ? "active" : ""}`}
                         title="Options"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setMenuOpenConvId(menuOpenConvId === conv._id ? null : conv._id);
+                          setMenuOpenConvId(
+                            menuOpenConvId === conv._id ? null : conv._id,
+                          );
                         }}
                       >
                         <MoreIcon />
                       </button>
-                      
+
                       {menuOpenConvId === conv._id && (
                         <div className="conversation-dropdown-menu">
-                          <button 
-                            className="dropdown-item" 
+                          <button
+                            className="dropdown-item"
                             onClick={(e) => {
                               e.stopPropagation();
                               setEditingConvId(conv._id);
@@ -713,8 +944,8 @@ export const Dashboard = ({ user, setUser, setView }) => {
                             <EditIcon />
                             <span>Rename</span>
                           </button>
-                          <button 
-                            className="dropdown-item delete-item" 
+                          <button
+                            className="dropdown-item delete-item"
                             onClick={(e) => {
                               e.stopPropagation();
                               setConfirmDeleteId(conv._id);
@@ -735,14 +966,22 @@ export const Dashboard = ({ user, setUser, setView }) => {
         </div>
 
         <div className="sidebar-footer">
-          <div className="user-profile clickable" onClick={() => setIsProfileOpen(true)} title="View Profile & Memories">
+          <div
+            className="user-profile clickable"
+            onClick={() => setIsProfileOpen(true)}
+            title="View Profile & Memories"
+          >
             <div className="avatar-circle">{userInitial}</div>
             <div className="user-info">
               <span className="user-name">{user?.fullName}</span>
               <span className="user-email">{user?.email}</span>
             </div>
           </div>
-          <button className="logout-icon-btn" onClick={handleLogout} title="Sign Out">
+          <button
+            className="logout-icon-btn"
+            onClick={handleLogout}
+            title="Sign Out"
+          >
             <LogoutIcon />
           </button>
         </div>
@@ -753,19 +992,37 @@ export const Dashboard = ({ user, setUser, setView }) => {
         {/* Top Navbar */}
         <header className="chat-header">
           <div className="header-left-cluster">
-            <button className="sidebar-toggle-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
+            <button
+              className="sidebar-toggle-btn"
+              onClick={() => {
+                if (window.innerWidth <= 768) {
+                  setSidebarOpen(!sidebarOpen);
+                } else {
+                  toggleSidebarCollapsed();
+                }
+              }}
+              title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            >
               <MenuIcon />
             </button>
             <h2 className="chat-active-title">
-              {activeConversationId 
-                ? (conversations.find(c => c._id === activeConversationId)?.title || "Active Discussion")
+              {activeConversationId
+                ? conversations.find((c) => c._id === activeConversationId)
+                    ?.title || "Active Discussion"
                 : "New Discussion"}
             </h2>
           </div>
-          
+
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <span className="pulse-dot"></span>
-            <span className="caption" style={{ color: "var(--color-muted)", fontSize: "12px", fontWeight: "600" }}>
+            <span
+              className="caption"
+              style={{
+                color: "var(--color-muted)",
+                fontSize: "12px",
+                fontWeight: "600",
+              }}
+            >
               Memora model online
             </span>
           </div>
@@ -779,44 +1036,21 @@ export const Dashboard = ({ user, setUser, setView }) => {
             </div>
             <h1 className="welcome-title">Meet your thinking partner.</h1>
             <p className="welcome-subtitle">
-              Memora is designed to help you organize thoughts, remember context, and execute workflows in a humanist, warm-cream dashboard.
+              Memora is designed to help you organize thoughts, remember
+              context, and execute workflows in a humanist, warm-cream
+              dashboard.
             </p>
-
-            <div className="suggestions-grid">
-              <div 
-                className="suggestion-card" 
-                onClick={() => handleQuickPrompt("Write a recursive Python function to compute Fibonacci numbers, with memoization.")}
-              >
-                <span className="suggestion-header">Write Fibonacci in Python</span>
-                <span className="suggestion-desc">Generates code using dynamic programming in a clean workspace format.</span>
-              </div>
-              <div 
-                className="suggestion-card" 
-                onClick={() => handleQuickPrompt("Can you draft an outline for an AI brand design project focusing on cream canvas and coral accents?")}
-              >
-                <span className="suggestion-header">Brand editorial outline</span>
-                <span className="suggestion-desc">Drafts details highlighting color choices, font hierarchies, and styling cues.</span>
-              </div>
-              <div 
-                className="suggestion-card" 
-                onClick={() => handleQuickPrompt("Give me a list of key items to prepare for an upcoming technical systems design interview.")}
-              >
-                <span className="suggestion-header">System design preparation</span>
-                <span className="suggestion-desc">Lists databases, caching strategies, horizontal scaling rules, and load balancers.</span>
-              </div>
-              <div 
-                className="suggestion-card" 
-                onClick={() => handleQuickPrompt("Explain why some AI applications use warm palettes (like cream/coral) instead of tech-blue.")}
-              >
-                <span className="suggestion-header">Warm-palette aesthetics</span>
-                <span className="suggestion-desc">Discusses humanist vs corporate brand representation and reader-friendliness.</span>
-              </div>
-            </div>
           </div>
         ) : (
           <div className="messages-feed">
             {isMessagesLoading ? (
-              <div style={{ textAlign: "center", padding: "48px", color: "var(--color-muted-soft)" }}>
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "48px",
+                  color: "var(--color-muted-soft)",
+                }}
+              >
                 Loading conversation thread...
               </div>
             ) : (
@@ -827,17 +1061,19 @@ export const Dashboard = ({ user, setUser, setView }) => {
                   )}
                   <div className="message-bubble">
                     {msg.isError ? (
-                      <ErrorBubble 
-                        message={msg.content} 
-                        retryText={msg.retryText} 
-                        onRetry={() => handleRetryMessage(msg._id, msg.retryText)} 
+                      <ErrorBubble
+                        message={msg.content}
+                        retryText={msg.retryText}
+                        onRetry={() =>
+                          handleRetryMessage(msg._id, msg.retryText)
+                        }
                       />
                     ) : msg.role === "user" ? (
                       <div className="message-text">{msg.content}</div>
                     ) : (
-                      <MarkdownMessage 
-                        content={msg.content} 
-                        onCopyCode={handleCopyCode} 
+                      <MarkdownMessage
+                        content={msg.content}
+                        onCopyCode={handleCopyCode}
                         copiedIndex={copiedIndex}
                       />
                     )}
@@ -880,9 +1116,9 @@ export const Dashboard = ({ user, setUser, setView }) => {
               <span className="chat-input-tips">
                 <span>Press Enter to send, Shift + Enter for new line</span>
               </span>
-              <button 
-                type="submit" 
-                className="send-message-btn" 
+              <button
+                type="submit"
+                className="send-message-btn"
                 disabled={!inputText.trim() || isTyping}
                 title="Send Prompt"
               >
@@ -891,164 +1127,241 @@ export const Dashboard = ({ user, setUser, setView }) => {
             </div>
           </form>
           <div className="chat-footer-disclaimer">
-            Memora AI leverages Gemini 1.5/2.0 to help you analyze, remember, and build. Accuracy is verified by user checks.
+            <p className="body-sm">&copy; {new Date().getFullYear()} Memora AI</p>
           </div>
         </div>
       </main>
 
       {/* Profile & Memory Modal */}
       {isProfileOpen && (
-        <div className="profile-modal-overlay" onClick={() => setIsProfileOpen(false)}>
-          <div className="profile-modal-card" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="profile-modal-overlay"
+          onClick={() => setIsProfileOpen(false)}
+        >
+          <div
+            className="profile-modal-card"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="profile-modal-header">
               <h3 className="profile-modal-title">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-primary)" }}>
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ color: "var(--color-primary)" }}
+                >
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                 </svg>
                 <span>Security & Memories</span>
               </h3>
-              <button className="profile-modal-close-btn" onClick={() => setIsProfileOpen(false)} title="Close">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <button
+                className="profile-modal-close-btn"
+                onClick={() => setIsProfileOpen(false)}
+                title="Close"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
               </button>
             </div>
-            
+
             <div className="profile-modal-body">
               {/* User Profile Info Card */}
               <div className="profile-user-panel">
                 <div className="profile-avatar-large">{userInitial}</div>
                 <div className="profile-user-meta">
-                  <div className="profile-user-name-title">{user?.fullName || "User"}</div>
+                  <div className="profile-user-name-title">
+                    {user?.fullName || "User"}
+                  </div>
                   <div className="profile-user-email-text">{user?.email}</div>
                   <span className="profile-user-security-badge">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "4px" }}>
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{ marginRight: "4px" }}
+                    >
+                      <rect
+                        x="3"
+                        y="11"
+                        width="18"
+                        height="11"
+                        rx="2"
+                        ry="2"
+                      ></rect>
                       <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                     </svg>
                     End-to-end Encrypted Session
                   </span>
                 </div>
               </div>
-              
+
               {/* Memories Section */}
               <div className="memories-section-header">
-                <h4 className="memories-section-title">Stored Personal Context</h4>
-                
-                {/* Search Bar */}
-                <div className="memory-search-wrapper">
-                  <span className="memory-search-icon">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="11" cy="11" r="8"></circle>
-                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                  </span>
-                  <input
-                    type="text"
-                    className="memory-search-input"
-                    placeholder="Search memory text or category..."
-                    value={memorySearchQuery}
-                    onChange={(e) => setMemorySearchQuery(e.target.value)}
-                  />
+                <div className="memories-section-title-row">
+                  <h4 className="memories-section-title">
+                    Stored Personal Context
+                  </h4>
+                  {!isMemoriesLoading && memories.length > 0 && (
+                    <span className="memories-count-badge">
+                      {memories.length} facts
+                    </span>
+                  )}
                 </div>
-                
-                {/* Category Pills (Dynamic) */}
-                {memories.length > 0 && (
-                  <div className="memory-category-filters">
-                    {["All", ...new Set(memories.map((m) => m.category || "general"))].map((cat) => (
-                      <button
-                        key={cat}
-                        className={`category-filter-pill ${activeMemoryCategoryFilter === cat ? "active" : ""}`}
-                        onClick={() => setActiveMemoryCategoryFilter(cat)}
-                      >
-                        {cat}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
-              
+
               {/* Memories List */}
               {isMemoriesLoading ? (
-                <div style={{ textAlign: "center", padding: "40px", color: "var(--color-muted-soft)", fontSize: "14px" }}>
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "40px",
+                    color: "var(--color-muted-soft)",
+                    fontSize: "14px",
+                  }}
+                >
                   Retrieving secure memories...
                 </div>
               ) : memories.length === 0 ? (
                 <div className="memory-empty-state">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: "8px" }}>
+                  <svg
+                    width="32"
+                    height="32"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ marginBottom: "8px" }}
+                  >
                     <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
                     <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
                   </svg>
                   <p className="memory-empty-text">
-                    No persistent memories found. As you converse, Memora automatically extracts key details to personalize your experience.
+                    No persistent memories found. As you converse, Memora
+                    automatically extracts key details to personalize your
+                    experience.
                   </p>
                 </div>
-              ) : (() => {
-                const filtered = memories.filter((mem) => {
-                  const query = memorySearchQuery.toLowerCase();
-                  const matchesSearch = mem.text.toLowerCase().includes(query) || 
-                    (mem.category && mem.category.toLowerCase().includes(query));
-                  const matchesCategory = activeMemoryCategoryFilter === "All" ||
-                    (mem.category || "general").toLowerCase() === activeMemoryCategoryFilter.toLowerCase();
-                  return matchesSearch && matchesCategory;
-                });
-                
-                if (filtered.length === 0) {
-                  return (
-                    <div style={{ textAlign: "center", padding: "24px", color: "var(--color-muted)", fontSize: "13px" }}>
-                      No memories match your filter criteria.
-                    </div>
-                  );
-                }
-                
-                return (
-                  <div className="memories-container">
-                    {filtered.map((mem) => (
-                      <div key={mem._id} className="memory-item-card">
-                        <div className="memory-item-content">
-                          <p className="memory-item-text">{mem.text}</p>
-                          <div className="memory-item-meta">
-                            <span className="memory-badge category-badge">
-                              {mem.category || "general"}
+              ) : (
+                <div className="memories-container">
+                  {memories.map((mem) => (
+                    <div key={mem._id} className="memory-item-card">
+                      <div className="memory-item-content">
+                        <p className="memory-item-text">{mem.text}</p>
+                        <div className="memory-item-meta">
+                          
+                          {mem.importance && (
+                            <span className="memory-badge importance-badge">
+                              Impact: {mem.importance}/10
                             </span>
-                            {mem.importance && (
-                              <span className="memory-badge importance-badge">
-                                Impact: {mem.importance}/10
-                              </span>
+                          )}
+                          <span className="memory-badge time-badge">
+                            Stored{" "}
+                            {new Date(mem.createdAt).toLocaleDateString(
+                              undefined,
+                              {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              },
                             )}
-                            <span className="memory-badge time-badge">
-                              Stored {new Date(mem.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                            </span>
-                          </div>
+                          </span>
                         </div>
+                      </div>
+
+                      {deletingMemoryConfirmId === mem._id ? (
+                        <div className="memory-delete-confirm-wrapper">
+                          {isDeletingMemoryId === mem._id ? (
+                            <span
+                              className="typing-dot"
+                              style={{
+                                width: "4px",
+                                height: "4px",
+                                margin: "0 2px",
+                              }}
+                            ></span>
+                          ) : (
+                            <>
+                              <span className="delete-confirm-prompt">
+                                Delete?
+                              </span>
+                              <button
+                                className="memory-confirm-btn confirm-yes"
+                                onClick={() => handleDeleteMemory(mem._id)}
+                                disabled={isDeletingMemoryId === mem._id}
+                                title="Confirm delete"
+                              >
+                                Yes
+                              </button>
+                              <button
+                                className="memory-confirm-btn confirm-no"
+                                onClick={() => setDeletingMemoryConfirmId(null)}
+                                disabled={isDeletingMemoryId === mem._id}
+                                title="Cancel delete"
+                              >
+                                No
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      ) : (
                         <button
                           className="memory-delete-btn"
                           title="Purge Memory"
-                          onClick={() => handleDeleteMemory(mem._id)}
-                          disabled={isDeletingMemoryId === mem._id}
+                          onClick={() => setDeletingMemoryConfirmId(mem._id)}
+                          disabled={isDeletingMemoryId !== null}
                         >
-                          {isDeletingMemoryId === mem._id ? (
-                            <span className="typing-dot" style={{ width: "4px", height: "4px", margin: "0 2px" }}></span>
-                          ) : (
-                            <TrashIcon size={14} />
-                          )}
+                          <TrashIcon size={14} />
                         </button>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
-              
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Disclaimer */}
               <div className="profile-disclaimer-box">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginTop: "2px" }}>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ marginTop: "2px" }}
+                >
                   <circle cx="12" cy="12" r="10"></circle>
                   <line x1="12" y1="16" x2="12" y2="12"></line>
                   <line x1="12" y1="8" x2="12.01" y2="8"></line>
                 </svg>
                 <span>
-                  <strong>Privacy Control:</strong> These facts are saved to personalize your AI responses. Deleting a fact permanently erases it from your database record.
+                  <strong>Privacy Control:</strong> These facts are saved to
+                  personalize your AI responses. Deleting a fact permanently
+                  erases it from your database record.
                 </span>
               </div>
             </div>

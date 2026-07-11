@@ -18,7 +18,6 @@ export const Landing = ({ user, setView }) => {
             <a href="#features">Platform</a>
             <a href="https://github.com/Debajyoti-3/memora-ai" target="_blank" rel="noreferrer">Developers</a>
             <a href="https://github.com/Debajyoti-3/memora-ai#readme" target="_blank" rel="noreferrer">Resources</a>
-            <a href="https://github.com/Debajyoti-3/memora-ai" target="_blank" rel="noreferrer">Company</a>
           </div>
 
           <div className="nav-actions">
@@ -223,7 +222,6 @@ export const Landing = ({ user, setView }) => {
             <ul>
               <li><a href="#features">Features</a></li>
               <li><a href="#" onClick={(e) => { e.preventDefault(); setView(user ? "dashboard" : "auth"); }}>Console</a></li>
-              <li><a href="#" onClick={(e) => { e.preventDefault(); setView("landing"); }}>Models</a></li>
             </ul>
           </div>
 

@@ -99,7 +99,6 @@
   position: relative;
 }
 
-/* Sidebar Styling */
 .sidebar {
   width: 280px;
   height: 100%;
@@ -108,7 +107,7 @@
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 10;
 }
 
@@ -1323,8 +1322,8 @@
 
 /* Desktop Sidebar toggle overrides */
 @media (min-width: 769px) {
-  .sidebar-toggle-btn {
-    display: none;
+  .sidebar.collapsed {
+    margin-left: -280px;
   }
 }
 
@@ -1654,80 +1653,31 @@
   padding-top: var(--space-lg);
 }
 
+.memories-section-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
 .memories-section-title {
+  font-family: var(--font-display);
   font-size: 14px;
   font-weight: 600;
   color: var(--color-ink);
   letter-spacing: -0.1px;
 }
 
-/* Search bar styling */
-.memory-search-wrapper {
-  position: relative;
-  width: 100%;
-}
-
-.memory-search-input {
-  width: 100%;
-  height: 38px;
-  padding: 0 var(--space-md) 0 34px;
-  background-color: var(--color-surface-soft);
-  border: 1px solid var(--color-hairline);
-  border-radius: var(--rounded-md);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
-  font-size: 13.5px;
-  transition: all 0.2s ease;
-}
-
-.memory-search-input:focus {
-  border-color: var(--color-muted);
-  outline: none;
-  background-color: var(--color-surface-dark-elevated);
-}
-
-.memory-search-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--color-muted);
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-}
-
-/* Category Filter Pills */
-.memory-category-filters {
-  display: flex;
-  gap: var(--space-xs);
-  flex-wrap: wrap;
-  padding-bottom: 2px;
-}
-
-.category-filter-pill {
-  background-color: transparent;
-  border: 1px solid var(--color-hairline);
-  color: var(--color-body);
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 600;
-  padding: 4px 10px;
+.memories-count-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-primary);
+  background-color: rgba(132, 204, 22, 0.06);
+  border: 1px solid rgba(132, 204, 22, 0.15);
+  padding: 3px 8px;
   border-radius: var(--rounded-pill);
-  cursor: pointer;
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  text-transform: capitalize;
-}
-
-.category-filter-pill:hover {
-  border-color: var(--color-muted);
-  color: var(--color-ink);
-}
-
-.category-filter-pill.active {
-  background-color: var(--color-ink);
-  color: var(--color-canvas);
-  border-color: var(--color-ink);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
 }
 
 /* Memories List */
@@ -1735,7 +1685,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
-  max-height: 360px;
+  max-height: 380px;
   overflow-y: auto;
   padding-right: var(--space-xxs);
 }
@@ -1760,13 +1710,15 @@
 /* Memory Card */
 .memory-item-card {
   display: flex;
+  flex-direction: row;
   justify-content: space-between;
+  align-items: flex-start;
   gap: var(--space-md);
-  padding: var(--space-sm) var(--space-md);
+  padding: var(--space-md);
   background-color: var(--color-surface-soft);
   border: 1px solid var(--color-hairline);
   border-radius: var(--rounded-md);
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .memory-item-card:hover {
@@ -1777,13 +1729,13 @@
 .memory-item-content {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
+  gap: var(--space-sm);
   flex: 1;
 }
 
 .memory-item-text {
   font-size: 13.5px;
-  line-height: 1.5;
+  line-height: 1.55;
   color: var(--color-body-strong);
 }
 
@@ -1797,22 +1749,22 @@
 .memory-badge {
   font-size: 10px;
   font-weight: 600;
-  padding: 1.5px 6px;
+  padding: 2px 7px;
   border-radius: var(--rounded-xs);
   text-transform: uppercase;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.3px;
 }
 
 .memory-badge.category-badge {
-  background-color: rgba(20, 184, 166, 0.08);
+  background-color: rgba(20, 184, 166, 0.05);
   color: var(--color-accent-teal);
-  border: 1px solid rgba(20, 184, 166, 0.15);
+  border: 1px solid rgba(20, 184, 166, 0.12);
 }
 
 .memory-badge.importance-badge {
-  background-color: rgba(245, 158, 11, 0.08);
+  background-color: rgba(245, 158, 11, 0.05);
   color: var(--color-accent-amber);
-  border: 1px solid rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.12);
 }
 
 .memory-badge.time-badge {
@@ -1823,8 +1775,10 @@
   text-transform: none;
   font-weight: 500;
   font-size: 11px;
+  letter-spacing: 0;
 }
 
+/* Delete button and confirmation wrapper */
 .memory-delete-btn {
   background: transparent;
   border: none;
@@ -1835,9 +1789,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  align-self: flex-start;
   transition: all 0.15s ease;
   flex-shrink: 0;
+  margin-top: -2px;
 }
 
 .memory-delete-btn:hover:not(:disabled) {
@@ -1848,6 +1802,73 @@
 .memory-delete-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Inline Delete Confirmation */
+.memory-delete-confirm-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  background-color: var(--color-surface-dark-soft);
+  border: 1px solid var(--color-hairline);
+  padding: 4px 8px;
+  border-radius: var(--rounded-sm);
+  animation: confirmFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
+
+@keyframes confirmFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.delete-confirm-prompt {
+  font-size: 11px;
+  color: var(--color-error);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-right: 2px;
+}
+
+.memory-confirm-btn {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--rounded-xs);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.memory-confirm-btn.confirm-yes {
+  background-color: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.memory-confirm-btn.confirm-yes:hover {
+  background-color: rgba(239, 68, 68, 0.22);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.memory-confirm-btn.confirm-no {
+  background-color: var(--color-surface-cream-strong);
+  color: var(--color-ink);
+  border-color: var(--color-hairline);
+}
+
+.memory-confirm-btn.confirm-no:hover {
+  background-color: var(--color-muted-soft);
+  color: var(--color-ink);
 }
 
 .profile-disclaimer-box {
@@ -1961,8 +1982,16 @@
   }
 
   .memory-item-card {
-    padding: var(--space-sm);
+    flex-direction: column;
+    align-items: stretch;
+    padding: var(--space-md);
     gap: var(--space-sm);
+  }
+
+  .memory-delete-btn,
+  .memory-delete-confirm-wrapper {
+    align-self: flex-end;
+    margin-top: var(--space-xxs);
   }
 
   @keyframes bottomSheetSlideUp {
