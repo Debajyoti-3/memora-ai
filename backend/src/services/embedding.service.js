@@ -2,7 +2,7 @@ import fetch from "node-fetch";
 
 const JINA_API_URL = "https://api.jina.ai/v1/embeddings";
 const EMBEDDING_MODEL = "jina-embeddings-v3";
-const EMBEDDING_DIMENSIONS = 1024; 
+const EMBEDDING_DIMENSIONS = 1024;
 
 const getApiKey = () => {
   const apiKey = process.env.JINA_API_KEY;
@@ -37,7 +37,7 @@ export const generateEmbedding = async (text) => {
       const errorBody = await response.text();
       console.error(
         `Jina API error: ${response.status} ${response.statusText}`,
-        errorBody
+        errorBody,
       );
       return [];
     }
@@ -49,15 +49,15 @@ export const generateEmbedding = async (text) => {
     if (!Array.isArray(embedding) || embedding.length === 0) {
       console.error(
         "generateEmbedding: unexpected response shape from Jina",
-        JSON.stringify(data)
+        JSON.stringify(data),
       );
       return [];
     }
 
     console.log(
-      `Embedding generated — model: ${EMBEDDING_MODEL}, dimensions: ${embedding.length}`
+      `Embedding generated — model: ${EMBEDDING_MODEL}, dimensions: ${embedding.length}`,
     );
-    console.log("Embedding vector:", embedding);
+    // console.log("Embedding vector:", embedding);
     return embedding;
   } catch (error) {
     console.error("generateEmbedding: network or parse error", error);
