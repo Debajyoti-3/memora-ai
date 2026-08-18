@@ -5,7 +5,7 @@ import { MemoraLogo, EyeIcon, EyeOffIcon } from "../components/Icons";
 import { showErrorToast } from "../services/errorParser";
 
 export const Auth = ({ setUser, setView, navigateToPrivacy }) => {
-  const [authMode, setAuthMode] = useState("login"); // 'login' or 'signup'
+  const [authMode, setAuthMode] = useState("login"); 
   const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
   const [authFormData, setAuthFormData] = useState({
     fullName: "",
@@ -13,7 +13,7 @@ export const Auth = ({ setUser, setView, navigateToPrivacy }) => {
     password: "",
   });
   
-  // Password toggle state
+  
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -21,12 +21,12 @@ export const Auth = ({ setUser, setView, navigateToPrivacy }) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Reset password visibility toggle when submitting
+    
     setShowPassword(false);
 
     try {
       if (authMode === "signup") {
-        // Signup call
+        
         const result = await authAPI.signup(
           authFormData.fullName,
           authFormData.email,
@@ -37,7 +37,7 @@ export const Auth = ({ setUser, setView, navigateToPrivacy }) => {
         setAuthFormData({ fullName: "", email: "", password: "" });
         toast.success("Signup successful! Please log in.");
       } else {
-        // Login call
+        
         const result = await authAPI.login(
           authFormData.email,
           authFormData.password
@@ -46,7 +46,7 @@ export const Auth = ({ setUser, setView, navigateToPrivacy }) => {
         const loggedUser = {
           id: result.data._id,
           email: result.data.email,
-          fullName: result.data.fullName || result.data.fullNmae, // handle typo in backend payload
+          fullName: result.data.fullName 
         };
         
         localStorage.setItem("memora_user", JSON.stringify(loggedUser));
@@ -64,7 +64,7 @@ export const Auth = ({ setUser, setView, navigateToPrivacy }) => {
   return (
     <div className="auth-container">
       <div className="auth-card anim-slide-up">
-        {/* Back Link to Landing Page */}
+        
         <div style={{ textAlign: "left", marginBottom: "16px" }}>
           <button 
             className="btn btn-text text-link" 
