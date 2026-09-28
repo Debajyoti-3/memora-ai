@@ -1,6 +1,7 @@
 import { User } from "../models/user.model.js";
 import bcrypt from "bcrypt";
 import { generateToken } from "../lib/generateToken.js";
+import { sendError, sendSuccess, ERROR_CODES } from "../utils/apiResponse.js";
 
 const signupUser = async (req, res) => {
   const { fullName, email, password } = req.body;
@@ -9,52 +10,73 @@ const signupUser = async (req, res) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!fullName || !email || !password) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
-    if (!passRegex.test(password)) {
-      return res.json({
-        message:
-          "Password must contain uppercase, lowercase, number and special character",
+      return sendError(res, {
+        statusCode: 400,
+        code: ERROR_CODES.VALIDATION_FAILED,
+        message: "Please provide your full name, email, and password.",
+        req,
       });
     }
 
     if (!emailRegex.test(email)) {
-      return res.json({ message: "given email is not valid" });
+      return sendError(res, {
+        statusCode: 400,
+        code: ERROR_CODES.VALIDATION_FAILED,
+        message: "Please enter a valid email address.",
+        req,
+      });
     }
+
+    if (!passRegex.test(password)) {
+      return sendError(res, {
+        statusCode: 400,
+        code: ERROR_CODES.VALIDATION_FAILED,
+        message:
+          "Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character.",
+        req,
+      });
+    }
+
     const user = await User.findOne({ email });
 
     if (user) {
-      return res.status(400).json({ message: "Email already exist" });
+      return sendError(res, {
+        statusCode: 400,
+        code: ERROR_CODES.AUTH_EMAIL_EXISTS,
+        message: "An account with this email already exists. Try signing in instead.",
+        req,
+      });
     }
 
-    const salt = await bcrypt.genSalt(10); //  10 salt rounds
+    const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const newUser = new User({
-      fullName,
-      email,
+      fullName: fullName.trim(),
+      email: email.trim().toLowerCase(),
       password: hashedPassword,
     });
 
-    if (newUser) {
-      await newUser.save();
+    await newUser.save();
 
-      res.status(201).json({
-        message: "Signup successful",
-        data: {
-          id: newUser._id,
-          fullName: newUser.fullName,
-          email: newUser.email,
-          profilePic: newUser.profilePic,
-        },
-      });
-    } else {
-      res.status(400).json({ message: "Invalid user data" });
-    }
+    return sendSuccess(res, {
+      statusCode: 201,
+      message: "Account created successfully. Please sign in.",
+      data: {
+        id: newUser._id,
+        fullName: newUser.fullName,
+        email: newUser.email,
+        profilePic: newUser.profilePic,
+      },
+    });
   } catch (error) {
-    console.log("Error in Signup", error.message);
-    res.status(500).json({ message: "Internal Server Error" });
+    return sendError(res, {
+      statusCode: 500,
+      code: ERROR_CODES.INTERNAL_ERROR,
+      message: "We couldn't create your account right now. Please try again.",
+      error,
+      req,
+    });
   }
 };
 
@@ -62,22 +84,39 @@ const loginUser = async (req, res) => {
   const { password, email } = req.body;
 
   try {
-    const user = await User.findOne({ email });
-
-    if (!user) {
-      return res.status(400).json({ message: "Invalid Credentials" });
+    if (!email || !password) {
+      return sendError(res, {
+        statusCode: 400,
+        code: ERROR_CODES.VALIDATION_FAILED,
+        message: "Please enter your email and password.",
+        req,
+      });
     }
 
-    const isPasswordCorrect = await bcrypt.compare(password, user.password);
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
 
-    if (!isPasswordCorrect) {
-      return res.status(400).json({ message: "Invalid Password" });
+    // Protect against account enumeration: use identical timing-safe comparison where feasible
+    // and identical error message for both non-existent user and wrong password
+    let isPasswordCorrect = false;
+    if (user) {
+      isPasswordCorrect = await bcrypt.compare(password, user.password);
+    }
+
+    if (!user || !isPasswordCorrect) {
+      return sendError(res, {
+        statusCode: 400,
+        code: ERROR_CODES.AUTH_INVALID_CREDENTIALS,
+        message: "That email or password doesn't look right. Please check and try again.",
+        req,
+      });
     }
 
     await generateToken(user._id, res);
 
-    res.status(200).json({
-      message: "login successfull",
+    return res.status(200).json({
+      success: true,
+      message: "Signed in successfully.",
       data: {
         success: true,
         _id: user._id,
@@ -87,8 +126,13 @@ const loginUser = async (req, res) => {
       },
     });
   } catch (error) {
-    console.log("Error in Login", error.message);
-    res.status(500).json({ message: "Internal Server Error" });
+    return sendError(res, {
+      statusCode: 500,
+      code: ERROR_CODES.INTERNAL_ERROR,
+      message: "We couldn't sign you in right now. Please try again.",
+      error,
+      req,
+    });
   }
 };
 
@@ -101,10 +145,17 @@ const logoutUser = async (req, res) => {
       sameSite: isProduction ? "none" : "lax",
       secure: isProduction,
     });
-    res.status(200).json({ message: "Logged out successfully" });
+    return sendSuccess(res, {
+      message: "Signed out successfully.",
+    });
   } catch (error) {
-    console.log("Error in logout", error.message);
-    res.status(500).json({ message: "Internal Server Error" });
+    return sendError(res, {
+      statusCode: 500,
+      code: ERROR_CODES.INTERNAL_ERROR,
+      message: "We couldn't sign you out right now. Please try again.",
+      error,
+      req,
+    });
   }
 };
 
@@ -122,10 +173,17 @@ const deleteAccount = async (req, res) => {
       secure: isProduction,
     });
 
-    res.status(200).json({ message: "Account deleted successfully" });
+    return sendSuccess(res, {
+      message: "Your account has been deleted permanently.",
+    });
   } catch (error) {
-    console.error("Error deleting account:", error.message);
-    res.status(500).json({ message: "Internal Server Error" });
+    return sendError(res, {
+      statusCode: 500,
+      code: ERROR_CODES.INTERNAL_ERROR,
+      message: "We couldn't delete your account right now. Please try again.",
+      error,
+      req,
+    });
   }
 };
 

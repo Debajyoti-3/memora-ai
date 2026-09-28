@@ -6,15 +6,18 @@ import { Memory } from "../models/memory.model.js";
 import { extractMemory } from "../services/memoryExtraction.service.js";
 import { generateEmbedding } from "../services/embedding.service.js";
 import { appendTurn } from "../services/stm.service.js";
+import { sendError, sendSuccess, ERROR_CODES } from "../utils/apiResponse.js";
 
 const createCoversation = async (req, res) => {
   try {
     const fetchedUser = req.user;
 
     if (!fetchedUser) {
-      return res.json({
-        status: 401,
-        message: "user not found or unauthenticated",
+      return sendError(res, {
+        statusCode: 401,
+        code: ERROR_CODES.AUTH_REQUIRED,
+        message: "Your session has expired. Please sign in again.",
+        req,
       });
     }
 
@@ -22,13 +25,19 @@ const createCoversation = async (req, res) => {
       userId: fetchedUser.id,
     });
 
-    return res.json({
-      message: "Conversation created successfully",
+    return res.status(200).json({
+      success: true,
+      message: "Chat session started successfully.",
       conversation: newConversation,
     });
   } catch (error) {
-    console.log("Error in Conversation Creation: ", error.message);
-    return res.status(500).json({ message: "Error in Conversation Creation" });
+    return sendError(res, {
+      statusCode: 500,
+      code: ERROR_CODES.INTERNAL_ERROR,
+      message: "We couldn't start a new chat. Please try again.",
+      error,
+      req,
+    });
   }
 };
 
@@ -37,9 +46,11 @@ const getCoversations = async (req, res) => {
     const fetchedUser = req.user;
 
     if (!fetchedUser) {
-      return res.json({
-        status: 401,
-        message: "user not found or unauthenticated",
+      return sendError(res, {
+        statusCode: 401,
+        code: ERROR_CODES.AUTH_REQUIRED,
+        message: "Your session has expired. Please sign in again.",
+        req,
       });
     }
 
@@ -47,13 +58,19 @@ const getCoversations = async (req, res) => {
       userId: fetchedUser.id,
     }).sort({ updatedAt: -1 });
 
-    return res.json({
+    return res.status(200).json({
+      success: true,
       fetchedConversations,
-      message: "conversations fetched successfully",
+      message: "Chat history loaded successfully.",
     });
   } catch (error) {
-    console.log("Conversation fetch error: ", error.message);
-    return res.json({ status: 500, message: "failed to fetch conversations" });
+    return sendError(res, {
+      statusCode: 500,
+      code: ERROR_CODES.INTERNAL_ERROR,
+      message: "We couldn't load your chat history. Please try again.",
+      error,
+      req,
+    });
   }
 };
 
@@ -62,10 +79,12 @@ const sendMessage = async (req, res) => {
     const { conversationId } = req.params;
     const { content } = req.body;
 
-    if (!conversationId || !content) {
-      return res.status(400).json({
-        success: false,
-        message: "conversationId and content are required",
+    if (!conversationId || !content || !content.trim()) {
+      return sendError(res, {
+        statusCode: 400,
+        code: ERROR_CODES.VALIDATION_FAILED,
+        message: "Please enter a message to send.",
+        req,
       });
     }
 
@@ -75,9 +94,11 @@ const sendMessage = async (req, res) => {
     });
 
     if (!conversation) {
-      return res.status(404).json({
-        success: false,
-        message: "Conversation not found",
+      return sendError(res, {
+        statusCode: 404,
+        code: ERROR_CODES.RESOURCE_NOT_FOUND,
+        message: "This chat conversation could not be found.",
+        req,
       });
     }
 
@@ -110,11 +131,34 @@ Guidelines:
     });
 
     if (!aiResult.success) {
-      return res.status(500).json({
-        success: false,
-        message: aiResult.error,
+      const errString = String(aiResult.error || "");
+      const isRateLimit =
+        errString.includes("429") ||
+        errString.toLowerCase().includes("quota") ||
+        errString.toLowerCase().includes("resource_exhausted") ||
+        errString.toLowerCase().includes("rate limit");
+
+      if (isRateLimit) {
+        return sendError(res, {
+          statusCode: 429,
+          code: ERROR_CODES.RATE_LIMITED,
+          message:
+            "We're receiving a lot of requests right now. Please try again in a minute.",
+          error: aiResult.error,
+          req,
+        });
+      }
+
+      return sendError(res, {
+        statusCode: 500,
+        code: ERROR_CODES.AI_SERVICE_UNAVAILABLE,
+        message:
+          "The assistant couldn't generate a reply right now. Your message was saved. Please try again.",
+        error: aiResult.error,
+        req,
       });
     }
+
     await appendTurn(conversationId, {
       role: "assistant",
       content: aiResult.response,
@@ -128,7 +172,6 @@ Guidelines:
     });
 
     // update conversation metadata
-
     conversation.lastMessageAt = new Date();
 
     if (conversation.title === "New Chat" || !conversation.title) {
@@ -144,8 +187,6 @@ Guidelines:
       messages: context,
     });
 
-    // console.log("MEMORY RESULT:", JSON.stringify(memoryResult, null, 2));
-
     if (memoryResult.success && memoryResult.memory.shouldRemember) {
       try {
         const memoryText = memoryResult.memory.memory;
@@ -155,38 +196,33 @@ Guidelines:
 
         await Memory.create({
           userId: req.user.id,
-
           text: memoryResult.memory.memory,
           embedding,
-
           category: memoryResult.memory.category,
-
           importance: memoryResult.memory.importance,
-
           sourceMessageId: userMessage._id,
         });
-        console.log("Memory created successfully for message");
       } catch (error) {
         console.error("Memory creation error:", error);
       }
     }
 
-    if (!memoryResult.success)
+    if (!memoryResult.success) {
       console.error("Memory extraction failed:", memoryResult.error);
+    }
 
     return res.status(200).json({
       success: true,
-
       userMessage,
-
       assistantMessage,
     });
   } catch (error) {
-    console.error("SEND MESSAGE ERROR:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
+    return sendError(res, {
+      statusCode: 500,
+      code: ERROR_CODES.INTERNAL_ERROR,
+      message: "We couldn't process your message. Please try again.",
+      error,
+      req,
     });
   }
 };
@@ -201,9 +237,11 @@ const getMessages = async (req, res) => {
     });
 
     if (!conversation) {
-      return res.status(404).json({
-        success: false,
-        message: "Conversation not found",
+      return sendError(res, {
+        statusCode: 404,
+        code: ERROR_CODES.RESOURCE_NOT_FOUND,
+        message: "This chat conversation could not be found.",
+        req,
       });
     }
 
@@ -213,23 +251,21 @@ const getMessages = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-
       conversation: {
         _id: conversation._id,
         title: conversation.title,
         createdAt: conversation.createdAt,
       },
-
       totalMessages: messages.length,
-
       messages,
     });
   } catch (error) {
-    console.error("GET MESSAGES ERROR:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
+    return sendError(res, {
+      statusCode: 500,
+      code: ERROR_CODES.INTERNAL_ERROR,
+      message: "We couldn't load the messages for this chat. Please try again.",
+      error,
+      req,
     });
   }
 };
@@ -245,9 +281,11 @@ const deleteConversation = async (req, res) => {
     });
 
     if (!conversation) {
-      return res.status(404).json({
-        success: false,
-        message: "Conversation not found or unauthorized",
+      return sendError(res, {
+        statusCode: 404,
+        code: ERROR_CODES.RESOURCE_NOT_FOUND,
+        message: "This chat conversation could not be found.",
+        req,
       });
     }
 
@@ -266,16 +304,16 @@ const deleteConversation = async (req, res) => {
     // 5. Delete conversation record itself
     await Conversation.deleteOne({ _id: conversationId });
 
-    return res.status(200).json({
-      success: true,
-      message:
-        "Conversation and associated messages/memories deleted permanently",
+    return sendSuccess(res, {
+      message: "Chat deleted permanently.",
     });
   } catch (error) {
-    console.error("DELETE CONVERSATION ERROR:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
+    return sendError(res, {
+      statusCode: 500,
+      code: ERROR_CODES.INTERNAL_ERROR,
+      message: "We couldn't delete this chat. Please try again.",
+      error,
+      req,
     });
   }
 };
@@ -286,9 +324,11 @@ const renameConversation = async (req, res) => {
     const { title } = req.body;
 
     if (!title || title.trim() === "") {
-      return res.status(400).json({
-        success: false,
-        message: "Title is required",
+      return sendError(res, {
+        statusCode: 400,
+        code: ERROR_CODES.VALIDATION_FAILED,
+        message: "Please enter a title for the chat.",
+        req,
       });
     }
 
@@ -298,9 +338,11 @@ const renameConversation = async (req, res) => {
     });
 
     if (!conversation) {
-      return res.status(404).json({
-        success: false,
-        message: "Conversation not found or unauthorized",
+      return sendError(res, {
+        statusCode: 404,
+        code: ERROR_CODES.RESOURCE_NOT_FOUND,
+        message: "This chat conversation could not be found.",
+        req,
       });
     }
 
@@ -309,14 +351,16 @@ const renameConversation = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Conversation renamed successfully",
+      message: "Chat renamed successfully.",
       conversation,
     });
   } catch (error) {
-    console.error("RENAME CONVERSATION ERROR:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
+    return sendError(res, {
+      statusCode: 500,
+      code: ERROR_CODES.INTERNAL_ERROR,
+      message: "We couldn't rename this chat. Please try again.",
+      error,
+      req,
     });
   }
 };
@@ -326,24 +370,31 @@ const getUserMemories = async (req, res) => {
     const fetchedUser = req.user;
 
     if (!fetchedUser) {
-      return res.status(401).json({
-        status: 401,
-        message: "User not found or unauthenticated",
+      return sendError(res, {
+        statusCode: 401,
+        code: ERROR_CODES.AUTH_REQUIRED,
+        message: "Your session has expired. Please sign in again.",
+        req,
       });
     }
+
     const userMemories = await Memory.find({ userId: fetchedUser.id }).sort({
       createdAt: -1,
     });
+
     return res.status(200).json({
       status: 200,
-      message: "User memories retrieved successfully",
+      success: true,
+      message: "Memories loaded successfully.",
       memories: userMemories,
     });
   } catch (error) {
-    console.error("FETCHING USER MEMORIES ERROR:", error);
-    return res.status(500).json({
-      status: 500,
-      message: "Internal server error",
+    return sendError(res, {
+      statusCode: 500,
+      code: ERROR_CODES.INTERNAL_ERROR,
+      message: "We couldn't load your saved memories. Please try again.",
+      error,
+      req,
     });
   }
 };
@@ -353,30 +404,40 @@ const deleteMemory = async (req, res) => {
     const { memoryId } = req.params;
 
     if (!memoryId) {
-      return res.status(400).json({
-        status: 400,
-        message: "Memory ID is required",
+      return sendError(res, {
+        statusCode: 400,
+        code: ERROR_CODES.VALIDATION_FAILED,
+        message: "A memory identifier is required.",
+        req,
       });
     }
-    
-    const result = await Memory.deleteOne({ _id: memoryId, userId: req.user.id });
-    
+
+    const result = await Memory.deleteOne({
+      _id: memoryId,
+      userId: req.user.id,
+    });
+
     if (result.deletedCount === 0) {
-      return res.status(404).json({
-        status: 404,
-        message: "Memory not found or unauthorized",
+      return sendError(res, {
+        statusCode: 404,
+        code: ERROR_CODES.RESOURCE_NOT_FOUND,
+        message: "This memory could not be found.",
+        req,
       });
     }
 
     return res.status(200).json({
       status: 200,
-      message: "Memory deleted successfully",
+      success: true,
+      message: "Memory deleted successfully.",
     });
   } catch (error) {
-    console.error("DELETE MEMORY ERROR:", error);
-    return res.status(500).json({
-      status: 500,
-      message: "Internal server error",
+    return sendError(res, {
+      statusCode: 500,
+      code: ERROR_CODES.INTERNAL_ERROR,
+      message: "We couldn't delete this memory. Please try again.",
+      error,
+      req,
     });
   }
 };

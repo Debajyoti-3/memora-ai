@@ -1,4 +1,3 @@
-import React, { useState } from "react";
 import { parseError } from "../../services/errorParser";
 
 const RateLimitIcon = () => (
@@ -122,8 +121,7 @@ const getErrorIcon = (type) => {
   }
 };
 
-export const ErrorBubble = ({ message, retryText, onRetry }) => {
-  const [showDetails, setShowDetails] = useState(false);
+export const ErrorBubble = ({ message, onRetry }) => {
   const parsed = parseError(message);
 
   return (
@@ -163,22 +161,6 @@ export const ErrorBubble = ({ message, retryText, onRetry }) => {
         >
           {parsed.friendlyTitle}
         </h4>
-        {parsed.isDev && (
-          <span
-            style={{
-              fontSize: "8.5px",
-              backgroundColor: "rgba(198, 69, 69, 0.08)",
-              color: "var(--color-error)",
-              padding: "1.5px 5px",
-              borderRadius: "4px",
-              textTransform: "uppercase",
-              fontWeight: "700",
-              letterSpacing: "0.5px",
-            }}
-          >
-            Dev
-          </span>
-        )}
       </div>
 
       <p
@@ -196,9 +178,10 @@ export const ErrorBubble = ({ message, retryText, onRetry }) => {
       <div
         style={{
           display: "flex",
-          gap: "12px",
+          gap: "14px",
           alignItems: "center",
           marginTop: "2px",
+          flexWrap: "wrap",
         }}
       >
         {onRetry && (
@@ -207,9 +190,9 @@ export const ErrorBubble = ({ message, retryText, onRetry }) => {
             className="btn btn-secondary"
             style={{
               height: "28px",
-              fontSize: "11px",
-              padding: "0 10px",
-              borderColor: "rgba(198, 69, 69, 0.2)",
+              fontSize: "12px",
+              padding: "0 12px",
+              borderColor: "rgba(198, 69, 69, 0.3)",
               backgroundColor: "transparent",
               color: "var(--color-error)",
               borderRadius: "6px",
@@ -217,47 +200,21 @@ export const ErrorBubble = ({ message, retryText, onRetry }) => {
               fontWeight: 500,
             }}
           >
-            Retry Message
+            Try again
           </button>
         )}
-        {parsed.isDev && (
-          <button
-            onClick={() => setShowDetails(!showDetails)}
-            className="btn btn-text"
+        {parsed.referenceId && (
+          <span
             style={{
-              height: "28px",
               fontSize: "11px",
-              padding: "0",
-              color: "var(--color-muted)",
-              cursor: "pointer",
-              background: "none",
-              border: "none",
+              color: "var(--color-muted-soft)",
+              fontFamily: "var(--font-mono)",
             }}
           >
-            {showDetails ? "Hide technical details" : "Show technical details"}
-          </button>
+            Reference: {parsed.referenceId}
+          </span>
         )}
       </div>
-
-      {parsed.isDev && showDetails && (
-        <pre
-          style={{
-            margin: "4px 0 0 0",
-            backgroundColor: "rgba(20, 20, 19, 0.03)",
-            border: "1px solid rgba(20, 20, 19, 0.08)",
-            borderRadius: "6px",
-            padding: "10px 12px",
-            fontSize: "11px",
-            fontFamily: "var(--font-mono)",
-            color: "var(--color-muted)",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-all",
-            lineHeight: "1.4",
-          }}
-        >
-          {parsed.technicalDetails || "No technical details provided."}
-        </pre>
-      )}
     </div>
   );
 };

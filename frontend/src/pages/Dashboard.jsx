@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from "react";
-import { toast } from "sonner";
+import { useState, useEffect, useRef } from "react";
 import { authAPI, messageAPI } from "../services/api";
-import { showErrorToast } from "../services/errorParser";
+import { showAppToast } from "../services/errorParser";
+import { MESSAGES } from "../constants/messages";
 import { Sidebar } from "../components/dashboard/Sidebar";
 import { ChatArea } from "../components/dashboard/ChatArea";
 import { ProfileModal } from "../components/dashboard/ProfileModal";
@@ -66,6 +66,50 @@ export const Dashboard = ({ user, setUser, setView }) => {
     };
   }, []);
 
+  const fetchConversations = async () => {
+    setIsConversationsLoading(true);
+    try {
+      const result = await messageAPI.getConversations();
+      if (result.fetchedConversations) {
+        setConversations(result.fetchedConversations);
+      }
+    } catch (err) {
+      console.error("Failed to fetch conversations", err);
+      showAppToast.error(err, {
+        context: "Chat history",
+        onRetry: fetchConversations,
+      });
+    } finally {
+      setIsConversationsLoading(false);
+    }
+  };
+
+  const fetchMessages = async (convId) => {
+    setIsMessagesLoading(true);
+    try {
+      const result = await messageAPI.getMessages(convId);
+      if (
+        activeConversationIdRef.current === convId &&
+        result.success &&
+        result.messages
+      ) {
+        setMessages(result.messages);
+      }
+    } catch (err) {
+      console.error("Failed to load messages", err);
+      if (activeConversationIdRef.current === convId) {
+        showAppToast.error(err, {
+          context: "Messages",
+          onRetry: () => fetchMessages(convId),
+        });
+      }
+    } finally {
+      if (activeConversationIdRef.current === convId) {
+        setIsMessagesLoading(false);
+      }
+    }
+  };
+
   useEffect(() => {
     fetchConversations();
   }, []);
@@ -88,25 +132,32 @@ export const Dashboard = ({ user, setUser, setView }) => {
     }
   }, [activeConversationId]);
 
+  const fetchMemories = async () => {
+    setIsMemoriesLoading(true);
+    try {
+      const res = await messageAPI.getUserMemories();
+      if (res.status === 200 || res.success) {
+        setMemories(res.memories || []);
+      } else {
+        showAppToast.error(res, {
+          context: "Memories",
+          onRetry: fetchMemories,
+        });
+      }
+    } catch (err) {
+      console.error("Fetch memories error:", err);
+      showAppToast.error(err, {
+        context: "Memories",
+        onRetry: fetchMemories,
+      });
+    } finally {
+      setIsMemoriesLoading(false);
+    }
+  };
+
   useEffect(() => {
     setDeletingMemoryConfirmId(null);
     if (isProfileOpen) {
-      const fetchMemories = async () => {
-        setIsMemoriesLoading(true);
-        try {
-          const res = await messageAPI.getUserMemories();
-          if (res.status === 200) {
-            setMemories(res.memories || []);
-          } else {
-            toast.error(res.message || "Failed to load memories");
-          }
-        } catch (err) {
-          console.error("Fetch memories error:", err);
-          toast.error("Failed to load memories");
-        } finally {
-          setIsMemoriesLoading(false);
-        }
-      };
       fetchMemories();
     }
   }, [isProfileOpen]);
@@ -115,16 +166,16 @@ export const Dashboard = ({ user, setUser, setView }) => {
     setIsDeletingMemoryId(memoryId);
     try {
       const res = await messageAPI.deleteMemory(memoryId);
-      if (res.status === 200) {
-        toast.success("Memory deleted successfully");
+      if (res.status === 200 || res.success) {
+        showAppToast.success(MESSAGES.MEMORIES.DELETE_SUCCESS);
         setMemories((prev) => prev.filter((m) => m._id !== memoryId));
         setDeletingMemoryConfirmId(null);
       } else {
-        toast.error(res.message || "Failed to delete memory");
+        showAppToast.error(res, { context: "Delete memory" });
       }
     } catch (err) {
       console.error("Delete memory error:", err);
-      toast.error("Failed to delete memory");
+      showAppToast.error(err, { context: "Delete memory" });
     } finally {
       setIsDeletingMemoryId(null);
     }
@@ -139,45 +190,7 @@ export const Dashboard = ({ user, setUser, setView }) => {
       localStorage.removeItem("memora_user");
       setUser(null);
       setView("landing");
-      toast.success("Sign out successful.");
-    }
-  };
-
-  const fetchConversations = async () => {
-    setIsConversationsLoading(true);
-    try {
-      const result = await messageAPI.getConversations();
-      if (result.fetchedConversations) {
-        setConversations(result.fetchedConversations);
-      }
-    } catch (err) {
-      console.error("Failed to fetch conversations", err);
-      showErrorToast(err, "Failed to load chat history");
-    } finally {
-      setIsConversationsLoading(false);
-    }
-  };
-
-  const fetchMessages = async (convId) => {
-    setIsMessagesLoading(true);
-    try {
-      const result = await messageAPI.getMessages(convId);
-      if (
-        activeConversationIdRef.current === convId &&
-        result.success &&
-        result.messages
-      ) {
-        setMessages(result.messages);
-      }
-    } catch (err) {
-      console.error("Failed to load messages", err);
-      if (activeConversationIdRef.current === convId) {
-        showErrorToast(err, "Failed to fetch thread");
-      }
-    } finally {
-      if (activeConversationIdRef.current === convId) {
-        setIsMessagesLoading(false);
-      }
+      showAppToast.success(MESSAGES.AUTH.SIGNOUT_SUCCESS);
     }
   };
 
@@ -213,7 +226,9 @@ export const Dashboard = ({ user, setUser, setView }) => {
       }
     } catch (err) {
       console.error("Failed to create conversation", err);
-      showErrorToast(err, "Failed to initialize discussion");
+      showAppToast.error(err, {
+        context: "New chat",
+      });
     }
   };
 
@@ -258,12 +273,8 @@ export const Dashboard = ({ user, setUser, setView }) => {
     } catch (err) {
       console.error("Failed to send message", err);
       if (activeConversationIdRef.current === convId) {
-        const errMsg =
-          err.response?.data?.message ||
-          err.message ||
-          "Could not connect to the assistant.";
-        showErrorToast(err, "Query Failed");
-
+        // Do not double-toast: the inline ErrorBubble in the message feed
+        // conveys the error clearly to the user without intrusive stacking toasts.
         setMessages((prev) => {
           const filtered = alreadyAddedOptimistically
             ? prev.filter((m) => !m._id.startsWith("temp-user-"))
@@ -273,7 +284,7 @@ export const Dashboard = ({ user, setUser, setView }) => {
               _id: `error-${Date.now()}`,
               role: "assistant",
               isError: true,
-              content: errMsg,
+              content: err,
               retryText: text,
             },
           ]);
@@ -318,19 +329,18 @@ export const Dashboard = ({ user, setUser, setView }) => {
         setActiveConversationId(null);
         setMessages([]);
       }
-      toast.success("Conversation deleted permanently.");
+      showAppToast.success(MESSAGES.CHAT.DELETE_CHAT_SUCCESS);
     } catch (err) {
       console.error("Failed to delete conversation", err);
-      showErrorToast(err, "Delete Failed");
+      showAppToast.error(err, { context: "Delete chat" });
     } finally {
       setConfirmDeleteId(null);
     }
   };
 
-  
   const handleRenameConversation = async (convId, newTitle) => {
     if (!newTitle.trim()) {
-      toast.error("Title cannot be empty");
+      showAppToast.warning(MESSAGES.CHAT.TITLE_REQUIRED);
       return;
     }
     try {
@@ -340,31 +350,28 @@ export const Dashboard = ({ user, setUser, setView }) => {
           c._id === convId ? { ...c, title: newTitle.trim() } : c,
         ),
       );
-      toast.success("Conversation renamed successfully.");
+      showAppToast.success(MESSAGES.CHAT.RENAME_CHAT_SUCCESS);
     } catch (err) {
       console.error("Failed to rename conversation", err);
-      showErrorToast(err, "Rename Failed");
+      showAppToast.error(err, { context: "Rename chat" });
     } finally {
       setEditingConvId(null);
     }
   };
 
-  
   const handleCopyCode = (text, id) => {
     navigator.clipboard.writeText(text).then(() => {
       setCopiedIndex(id);
-      toast.success("Snippet copied to clipboard.");
+      showAppToast.success(MESSAGES.CHAT.COPY_CODE_SUCCESS);
       setTimeout(() => setCopiedIndex(null), 2000);
     });
   };
 
-  
   const handleRetryMessage = async (errorMsgId, retryText) => {
     setMessages((prev) => prev.filter((m) => m._id !== errorMsgId));
     await sendMessageToServer(activeConversationId, retryText);
   };
 
-  
   const userInitial = user?.fullName
     ? user.fullName.charAt(0).toUpperCase()
     : "U";

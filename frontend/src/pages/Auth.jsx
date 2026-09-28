@@ -1,43 +1,44 @@
-import React, { useState } from "react";
-import { toast } from "sonner";
+import { useState } from "react";
 import { authAPI } from "../services/api";
 import { MemoraLogo, EyeIcon, EyeOffIcon } from "../components/Icons";
-import { showErrorToast } from "../services/errorParser";
+import { showAppToast } from "../services/errorParser";
+import { MESSAGES } from "../constants/messages";
 
 export const Auth = ({ setUser, setView, navigateToPrivacy }) => {
-  const [authMode, setAuthMode] = useState("login"); 
+  const [authMode, setAuthMode] = useState("login");
   const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
   const [authFormData, setAuthFormData] = useState({
     fullName: "",
     email: "",
     password: "",
   });
-  
-  
+
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleAuthSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-
-    
     setShowPassword(false);
 
     try {
       if (authMode === "signup") {
-        
-        const result = await authAPI.signup(
+        if (!agreedToPrivacy) {
+          showAppToast.warning(MESSAGES.AUTH.PRIVACY_POLICY_REQUIRED);
+          setIsLoading(false);
+          return;
+        }
+
+        await authAPI.signup(
           authFormData.fullName,
           authFormData.email,
           authFormData.password
         );
-        
+
         setAuthMode("login");
         setAuthFormData({ fullName: "", email: "", password: "" });
-        toast.success("Signup successful! Please log in.");
+        showAppToast.success(MESSAGES.AUTH.SIGNUP_SUCCESS);
       } else {
-        
         const result = await authAPI.login(
           authFormData.email,
           authFormData.password
@@ -46,16 +47,18 @@ export const Auth = ({ setUser, setView, navigateToPrivacy }) => {
         const loggedUser = {
           id: result.data._id,
           email: result.data.email,
-          fullName: result.data.fullName 
+          fullName: result.data.fullName,
         };
-        
+
         localStorage.setItem("memora_user", JSON.stringify(loggedUser));
         setUser(loggedUser);
         setView("dashboard");
-        toast.success(`Welcome back, ${loggedUser.fullName || "User"}!`);
+        showAppToast.success(MESSAGES.AUTH.SIGNIN_SUCCESS(loggedUser.fullName));
       }
     } catch (err) {
-      showErrorToast(err, "Authentication Failed");
+      showAppToast.error(err, {
+        context: authMode === "signup" ? "Account creation" : "Sign in",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -64,14 +67,29 @@ export const Auth = ({ setUser, setView, navigateToPrivacy }) => {
   return (
     <div className="auth-container">
       <div className="auth-card anim-slide-up">
-        
         <div style={{ textAlign: "left", marginBottom: "16px" }}>
-          <button 
-            className="btn btn-text text-link" 
-            onClick={() => setView("landing")} 
-            style={{ padding: 0, display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "13px" }}
+          <button
+            className="btn btn-text text-link"
+            onClick={() => setView("landing")}
+            style={{
+              padding: 0,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "4px",
+              fontSize: "13px",
+            }}
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            >
+              <line x1="19" y1="12" x2="5" y2="12"></line>
+              <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
             Back to homepage
           </button>
         </div>
@@ -82,8 +100,8 @@ export const Auth = ({ setUser, setView, navigateToPrivacy }) => {
           </div>
           <h1 className="auth-title">Memora AI</h1>
           <p className="auth-subtitle">
-            {authMode === "login" 
-              ? "Enter your credentials to access your thinking partner" 
+            {authMode === "login"
+              ? "Enter your credentials to access your thinking partner"
               : "Create an account to start remembering and context-chatting"}
           </p>
         </div>
@@ -91,7 +109,9 @@ export const Auth = ({ setUser, setView, navigateToPrivacy }) => {
         <form onSubmit={handleAuthSubmit} className="auth-form">
           {authMode === "signup" && (
             <div className="input-group">
-              <label className="input-label" htmlFor="fullName">Full Name</label>
+              <label className="input-label" htmlFor="fullName">
+                Full Name
+              </label>
               <input
                 id="fullName"
                 type="text"
@@ -100,13 +120,20 @@ export const Auth = ({ setUser, setView, navigateToPrivacy }) => {
                 required
                 disabled={isLoading}
                 value={authFormData.fullName}
-                onChange={(e) => setAuthFormData(prev => ({ ...prev, fullName: e.target.value }))}
+                onChange={(e) =>
+                  setAuthFormData((prev) => ({
+                    ...prev,
+                    fullName: e.target.value,
+                  }))
+                }
               />
             </div>
           )}
 
           <div className="input-group">
-            <label className="input-label" htmlFor="email">Email address</label>
+            <label className="input-label" htmlFor="email">
+              Email address
+            </label>
             <input
               id="email"
               type="email"
@@ -115,12 +142,19 @@ export const Auth = ({ setUser, setView, navigateToPrivacy }) => {
               required
               disabled={isLoading}
               value={authFormData.email}
-              onChange={(e) => setAuthFormData(prev => ({ ...prev, email: e.target.value }))}
+              onChange={(e) =>
+                setAuthFormData((prev) => ({
+                  ...prev,
+                  email: e.target.value,
+                }))
+              }
             />
           </div>
 
           <div className="input-group">
-            <label className="input-label" htmlFor="password">Password</label>
+            <label className="input-label" htmlFor="password">
+              Password
+            </label>
             <div className="password-input-wrapper">
               <input
                 id="password"
@@ -130,7 +164,12 @@ export const Auth = ({ setUser, setView, navigateToPrivacy }) => {
                 required
                 disabled={isLoading}
                 value={authFormData.password}
-                onChange={(e) => setAuthFormData(prev => ({ ...prev, password: e.target.value }))}
+                onChange={(e) =>
+                  setAuthFormData((prev) => ({
+                    ...prev,
+                    password: e.target.value,
+                  }))
+                }
               />
               <button
                 type="button"
@@ -142,10 +181,30 @@ export const Auth = ({ setUser, setView, navigateToPrivacy }) => {
                 {showPassword ? <EyeOffIcon /> : <EyeIcon />}
               </button>
             </div>
+            {authMode === "signup" && (
+              <span
+                style={{
+                  fontSize: "11px",
+                  color: "var(--color-muted-soft)",
+                  marginTop: "4px",
+                  textAlign: "left",
+                }}
+              >
+                At least 8 characters with upper, lower, number & symbol.
+              </span>
+            )}
           </div>
 
           {authMode === "signup" && (
-            <div className="input-group" style={{ flexDirection: "row", alignItems: "center", gap: "8px", marginTop: "4px" }}>
+            <div
+              className="input-group"
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: "8px",
+                marginTop: "4px",
+              }}
+            >
               <input
                 id="agreePrivacy"
                 type="checkbox"
@@ -153,19 +212,34 @@ export const Auth = ({ setUser, setView, navigateToPrivacy }) => {
                   width: "16px",
                   height: "16px",
                   accentColor: "var(--color-primary)",
-                  cursor: "pointer"
+                  cursor: "pointer",
                 }}
                 required
                 checked={agreedToPrivacy}
                 onChange={(e) => setAgreedToPrivacy(e.target.checked)}
               />
-              <label htmlFor="agreePrivacy" style={{ fontSize: "13px", color: "var(--color-body)", cursor: "pointer", userSelect: "none" }}>
+              <label
+                htmlFor="agreePrivacy"
+                style={{
+                  fontSize: "13px",
+                  color: "var(--color-body)",
+                  cursor: "pointer",
+                  userSelect: "none",
+                }}
+              >
                 I agree to the{" "}
-                <button 
-                  type="button" 
-                  className="text-link" 
+                <button
+                  type="button"
+                  className="text-link"
                   onClick={navigateToPrivacy}
-                  style={{ padding: 0, border: "none", background: "none", fontSize: "inherit", cursor: "pointer", verticalAlign: "baseline" }}
+                  style={{
+                    padding: 0,
+                    border: "none",
+                    background: "none",
+                    fontSize: "inherit",
+                    cursor: "pointer",
+                    verticalAlign: "baseline",
+                  }}
                 >
                   Privacy Policy
                 </button>
@@ -173,15 +247,17 @@ export const Auth = ({ setUser, setView, navigateToPrivacy }) => {
             </div>
           )}
 
-          <button 
-            type="submit" 
-            className="btn btn-primary" 
+          <button
+            type="submit"
+            className="btn btn-primary"
             disabled={isLoading || (authMode === "signup" && !agreedToPrivacy)}
             style={{ width: "100%", height: "42px", marginTop: "8px" }}
           >
-            {isLoading 
-              ? "Authenticating..." 
-              : authMode === "login" ? "Sign In" : "Create Account"}
+            {isLoading
+              ? "Connecting..."
+              : authMode === "login"
+              ? "Sign In"
+              : "Create Account"}
           </button>
         </form>
 
@@ -189,10 +265,13 @@ export const Auth = ({ setUser, setView, navigateToPrivacy }) => {
           {authMode === "login" ? (
             <>
               New to Memora?{" "}
-              <button 
-                className="text-link btn-text" 
-                disabled={isLoading} 
-                onClick={() => { setAuthMode("signup"); setShowPassword(false); }}
+              <button
+                className="text-link btn-text"
+                disabled={isLoading}
+                onClick={() => {
+                  setAuthMode("signup");
+                  setShowPassword(false);
+                }}
               >
                 Create an account
               </button>
@@ -200,10 +279,13 @@ export const Auth = ({ setUser, setView, navigateToPrivacy }) => {
           ) : (
             <>
               Have an account?{" "}
-              <button 
-                className="text-link btn-text" 
-                disabled={isLoading} 
-                onClick={() => { setAuthMode("login"); setShowPassword(false); }}
+              <button
+                className="text-link btn-text"
+                disabled={isLoading}
+                onClick={() => {
+                  setAuthMode("login");
+                  setShowPassword(false);
+                }}
               >
                 Sign in
               </button>
