@@ -613,6 +613,15 @@
   margin-top: var(--space-xs);
   padding-top: var(--space-xs);
   border-top: 1px solid var(--color-hairline-soft);
+  gap: var(--space-xs);
+}
+
+.chat-input-tips-cluster {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  min-height: 24px;
 }
 
 .chat-input-tips {
@@ -621,6 +630,107 @@
   display: flex;
   align-items: center;
   gap: var(--space-xxs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-input-voice-status {
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-input-voice-status.listening {
+  color: #ef4444;
+}
+
+.chat-input-voice-status.error {
+  color: var(--color-error);
+}
+
+.voice-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--rounded-full);
+  flex-shrink: 0;
+}
+
+.voice-status-dot.listening {
+  background-color: #ef4444;
+  animation: pulseDot 1.2s infinite ease-in-out;
+}
+
+.voice-status-dot.error {
+  background-color: var(--color-error);
+}
+
+.chat-input-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+}
+
+.mic-btn {
+  background-color: transparent;
+  color: var(--color-muted);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--rounded-md);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.mic-btn:hover:not(:disabled) {
+  color: var(--color-ink);
+  background-color: var(--color-surface-card);
+  border-color: var(--color-muted-soft);
+}
+
+.mic-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-color: transparent;
+}
+
+.mic-btn.listening {
+  color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.5);
+  animation: mic-pulse 1.8s infinite ease-in-out;
+}
+
+.mic-btn.listening:hover {
+  background-color: rgba(239, 68, 68, 0.22);
+}
+
+.mic-btn.error {
+  color: var(--color-error);
+  border-color: rgba(239, 68, 68, 0.4);
+  background-color: rgba(239, 68, 68, 0.08);
+}
+
+@keyframes mic-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
 }
 
 .send-message-btn {

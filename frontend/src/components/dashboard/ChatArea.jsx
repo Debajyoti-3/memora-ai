@@ -1,7 +1,14 @@
-import React from "react";
-import { MemoraLogo, MenuIcon, SendIcon } from "../Icons";
+import {
+  MemoraLogo,
+  MenuIcon,
+  SendIcon,
+  MicIcon,
+  MicActiveIcon,
+  MicOffIcon,
+} from "../Icons";
 import { MarkdownMessage } from "../MarkdownMessage";
 import { ErrorBubble } from "./ErrorBubble";
+import { useSpeechToText } from "../../hooks/useSpeechToText";
 
 export const ChatArea = ({
   sidebarOpen,
@@ -43,7 +50,49 @@ export const ChatArea = ({
     },
   ];
 
+  const {
+    isListening,
+    isSupported,
+    errorMessage,
+    startListening,
+    stopListening,
+  } = useSpeechToText({
+    onTranscript: (newText) => {
+      setInputText(newText);
+    },
+  });
+
+  const handleMicClick = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening(inputText);
+    }
+    if (textInputRef.current) {
+      textInputRef.current.focus();
+    }
+  };
+
+  const handleFormSubmit = (e) => {
+    if (isListening) {
+      stopListening();
+    }
+    handleSendMessage(e);
+  };
+
+  const handleTextareaKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      if (isListening) {
+        stopListening();
+      }
+    }
+    handleKeyDown(e);
+  };
+
   const handleQuickPromptClick = (promptText) => {
+    if (isListening) {
+      stopListening();
+    }
     setInputText(promptText);
     if (textInputRef.current) {
       textInputRef.current.focus();
@@ -181,27 +230,74 @@ export const ChatArea = ({
 
       {/* Input Text Form Area */}
       <div className="chat-input-container">
-        <form onSubmit={handleSendMessage} className="chat-input-wrapper">
+        <form onSubmit={handleFormSubmit} className="chat-input-wrapper">
           <textarea
             ref={textInputRef}
             className="chat-textarea"
             placeholder="Ask anything, query your context, or write a prompt..."
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={handleKeyDown}
+            onKeyDown={handleTextareaKeyDown}
           />
           <div className="chat-input-controls">
-            <span className="chat-input-tips">
-              <span>Press Enter to send, Shift + Enter for new line</span>
-            </span>
-            <button
-              type="submit"
-              className="send-message-btn"
-              disabled={!inputText.trim() || isTyping}
-              title="Send Prompt"
-            >
-              <SendIcon />
-            </button>
+            <div className="chat-input-tips-cluster">
+              {errorMessage ? (
+                <span className="chat-input-voice-status error">
+                  <span className="voice-status-dot error"></span>
+                  {errorMessage}
+                </span>
+              ) : isListening ? (
+                <span className="chat-input-voice-status listening">
+                  <span className="voice-status-dot listening"></span>
+                  Listening... speak now
+                </span>
+              ) : (
+                <span className="chat-input-tips">
+                  <span>Press Enter to send, Shift + Enter for new line</span>
+                </span>
+              )}
+            </div>
+
+            <div className="chat-input-actions">
+              <button
+                type="button"
+                className={`mic-btn ${isListening ? "listening" : ""} ${errorMessage ? "error" : ""}`}
+                onClick={handleMicClick}
+                disabled={!isSupported || isTyping}
+                title={
+                  !isSupported
+                    ? "Voice input works in Chrome/Edge"
+                    : isListening
+                    ? "Stop listening"
+                    : errorMessage
+                    ? errorMessage
+                    : "Voice input"
+                }
+                aria-label={
+                  !isSupported
+                    ? "Voice input unsupported"
+                    : isListening
+                    ? "Stop voice input"
+                    : "Voice input"
+                }
+              >
+                {isListening ? (
+                  <MicActiveIcon size={16} />
+                ) : errorMessage ? (
+                  <MicOffIcon size={16} />
+                ) : (
+                  <MicIcon size={16} />
+                )}
+              </button>
+              <button
+                type="submit"
+                className="send-message-btn"
+                disabled={!inputText.trim() || isTyping}
+                title="Send Prompt"
+              >
+                <SendIcon />
+              </button>
+            </div>
           </div>
         </form>
         <div className="chat-footer-disclaimer">
